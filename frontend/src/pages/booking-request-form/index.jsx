@@ -14,11 +14,13 @@ const BookingRequestForm = () => {
   const [availabilityStatus, setAvailabilityStatus] = useState(null);
 
   const [formData, setFormData] = useState({
-    eventTitle: '',
     eventType: '',
-    eventDate: '',
-    timeSlot: '',
-    duration: '',
+    eventTitle: '',
+    venue: '',
+    eventStartDate: '',
+    eventEndDate: '',
+    startTime: '',
+    endTime: '',
     expectedAttendees: '',
     eventPurpose: '',
     seatingArrangement: '',
@@ -50,20 +52,26 @@ const BookingRequestForm = () => {
   const mockExistingBookings = [
     {
       eventTitle: 'Annual Tech Conference 2026',
-      eventDate: '2026-01-20',
-      timeSlot: '09:00-11:00',
+      eventStartDate: '2026-01-20',
+      eventEndDate: '2026-01-20',
+      startTime: '09:00',
+      endTime: '11:00',
       status: 'approved'
     },
     {
       eventTitle: 'Cultural Festival Opening Ceremony',
-      eventDate: '2026-01-20',
-      timeSlot: '15:00-17:00',
+      eventStartDate: '2026-01-20',
+      eventEndDate: '2026-01-20',
+      startTime: '15:00',
+      endTime: '17:00',
       status: 'approved'
     },
     {
       eventTitle: 'Guest Lecture Series',
-      eventDate: '2026-01-25',
-      timeSlot: '11:00-13:00',
+      eventStartDate: '2026-01-25',
+      eventEndDate: '2026-01-25',
+      startTime: '11:00',
+      endTime: '13:00',
       status: 'approved'
     }
   ];
@@ -71,16 +79,17 @@ const BookingRequestForm = () => {
   const [conflictingBookings, setConflictingBookings] = useState([]);
 
   useEffect(() => {
-    if (formData?.eventDate && formData?.timeSlot) {
+    if (formData?.eventStartDate && formData?.startTime && formData?.endTime) {
       checkAvailability();
     }
-  }, [formData?.eventDate, formData?.timeSlot]);
+  }, [formData?.eventStartDate, formData?.startTime, formData?.endTime]);
 
   const checkAvailability = () => {
     const conflicts = mockExistingBookings?.filter(
       (booking) =>
-        booking?.eventDate === formData?.eventDate &&
-        booking?.timeSlot === formData?.timeSlot &&
+        booking?.eventStartDate === formData?.eventStartDate &&
+        booking?.startTime === formData?.startTime &&
+        booking?.endTime === formData?.endTime &&
         booking?.status === 'approved'
     );
 
@@ -141,24 +150,40 @@ const BookingRequestForm = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData?.eventTitle?.trim()) {
-      newErrors.eventTitle = 'Program name is required';
-    }
-
     if (!formData?.eventType) {
       newErrors.eventType = 'Select the type of program';
     }
 
-    if (!formData?.eventDate) {
-      newErrors.eventDate = 'Select the date';
+    if (!formData?.eventTitle?.trim()) {
+      newErrors.eventTitle = 'Program name is required';
     }
 
-    if (!formData?.timeSlot) {
-      newErrors.timeSlot = 'Choose time slot';
+    if (!formData?.venue) {
+      newErrors.venue = 'Select a venue';
     }
 
-    if (!formData?.duration) {
-      newErrors.duration = 'Select the duration';
+    if (!formData?.eventStartDate) {
+      newErrors.eventStartDate = 'Select start date';
+    }
+
+    if (!formData?.eventEndDate) {
+      newErrors.eventEndDate = 'Select end date';
+    }
+
+    if (formData?.eventStartDate && formData?.eventEndDate && formData?.eventEndDate < formData?.eventStartDate) {
+      newErrors.eventEndDate = 'End date cannot be before start date';
+    }
+
+    if (!formData?.startTime) {
+      newErrors.startTime = 'Select start time';
+    }
+
+    if (!formData?.endTime) {
+      newErrors.endTime = 'Select end time';
+    }
+
+    if (formData?.startTime && formData?.endTime && formData?.endTime <= formData?.startTime) {
+      newErrors.endTime = 'End time must be after start time';
     }
 
     if (!formData?.expectedAttendees || formData?.expectedAttendees <= 0) {
@@ -178,7 +203,7 @@ const BookingRequestForm = () => {
     }
 
     if (!formData?.priority) {
-      newErrors.priority = 'Select priority level   ';
+      newErrors.priority = 'Select priority level';
     }
 
     if (!formData?.acknowledgeFCFS) {
@@ -190,7 +215,7 @@ const BookingRequestForm = () => {
     }
 
     if (availabilityStatus && !availabilityStatus?.available) {
-      newErrors.timeSlot = 'The selected time slot is not available';
+      newErrors.startTime = 'The selected time slot is not available';
     }
 
     setErrors(newErrors);

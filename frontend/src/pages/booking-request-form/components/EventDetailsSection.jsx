@@ -10,6 +10,11 @@ const EventDetailsSection = ({
   availabilityStatus,
   conflictingBookings
 }) => {
+  const venueOptions = [
+    { value: 'main_auditorium', label: 'Main Auditorium (500 capacity)' },
+    { value: 'seminar_hall', label: 'Seminar Hall (120 capacity)' },
+  ];
+
   const eventTypeOptions = [
     { value: 'seminar', label: 'Seminar' },
     { value: 'conference', label: 'Conference' },
@@ -20,22 +25,26 @@ const EventDetailsSection = ({
     { value: 'other', label: 'Other' }
   ];
 
-  const timeSlotOptions = [
-    { value: '09:00-11:00', label: '09:00 AM - 11:00 AM' },
-    { value: '11:00-13:00', label: '11:00 AM - 01:00 PM' },
-    { value: '13:00-15:00', label: '01:00 PM - 03:00 PM' },
-    { value: '15:00-17:00', label: '03:00 PM - 05:00 PM' },
-    { value: '17:00-19:00', label: '05:00 PM - 07:00 PM' }
-  ];
-
-  const durationOptions = [
-    { value: '1', label: '1 Hour' },
-    { value: '2', label: '2 Hours' },
-    { value: '3', label: '3 Hours' },
-    { value: '4', label: '4 Hours' },
-    { value: '5', label: '5 Hours' },
-    { value: 'full_day', label: 'Full Day' }
-  ];
+  const calculateDuration = () => {
+    if (formData?.startTime && formData?.endTime) {
+      const start = new Date(`2000-01-01T${formData.startTime}:00`);
+      const end = new Date(`2000-01-01T${formData.endTime}:00`);
+      
+      if (end > start) {
+        const diffMs = end - start;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        const hours = Math.floor(diffHours);
+        const minutes = Math.round((diffHours - hours) * 60);
+        
+        if (minutes === 0) {
+          return `${hours} Hour${hours !== 1 ? 's' : ''}`;
+        } else {
+          return `${hours}h ${minutes}m`;
+        }
+      }
+    }
+    return '';
+  };
 
   const getMinDate = () => {
     const today = new Date();
@@ -58,15 +67,15 @@ const EventDetailsSection = ({
       </div>
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <Input
-            label="Event Title"
-            type="text"
-            name="eventTitle"
-            placeholder="Enter event title"
-            value={formData?.eventTitle}
-            onChange={onInputChange}
-            error={errors?.eventTitle}
+          <Select
+            label="Venue"
+            name="venue"
+            options={venueOptions}
+            value={formData?.venue}
+            onChange={(value) => onInputChange({ target: { name: 'venue', value } })}
+            error={errors?.venue}
             required
+            placeholder="Select venue"
           />
 
           <Select
@@ -81,42 +90,76 @@ const EventDetailsSection = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div>
           <Input
-            label="Event Date"
-            type="date"
-            name="eventDate"
-            value={formData?.eventDate}
+            label="Event Title"
+            type="text"
+            name="eventTitle"
+            placeholder="Enter event title"
+            value={formData?.eventTitle}
             onChange={onInputChange}
-            error={errors?.eventDate}
+            error={errors?.eventTitle}
             required
-            min={getMinDate()}
-          />
-
-          <Select
-            label="Time Slot"
-            name="timeSlot"
-            options={timeSlotOptions}
-            value={formData?.timeSlot}
-            onChange={(value) => onInputChange({ target: { name: 'timeSlot', value } })}
-            error={errors?.timeSlot}
-            required
-            placeholder="Select time slot"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <Select
-            label="Duration"
-            name="duration"
-            options={durationOptions}
-            value={formData?.duration}
-            onChange={(value) => onInputChange({ target: { name: 'duration', value } })}
-            error={errors?.duration}
+          <Input
+            label="Event Start Date"
+            type="date"
+            name="eventStartDate"
+            value={formData?.eventStartDate}
+            onChange={onInputChange}
+            error={errors?.eventStartDate}
             required
-            placeholder="Select duration"
+            min={getMinDate()}
           />
 
+          <Input
+            label="Event End Date"
+            type="date"
+            name="eventEndDate"
+            value={formData?.eventEndDate}
+            onChange={onInputChange}
+            error={errors?.eventEndDate}
+            required
+            min={formData?.eventStartDate || getMinDate()}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          <Input
+            label="Start Time"
+            type="time"
+            name="startTime"
+            value={formData?.startTime}
+            onChange={onInputChange}
+            error={errors?.startTime}
+            required
+          />
+
+          <Input
+            label="Expected End Time"
+            type="time"
+            name="endTime"
+            value={formData?.endTime}
+            onChange={onInputChange}
+            error={errors?.endTime}
+            required
+          />
+
+          <Input
+            label="Duration"
+            type="text"
+            name="duration"
+            value={calculateDuration()}
+            readOnly
+            placeholder="Auto-calculated"
+            className="bg-muted"
+          />
+        </div>
+
+        <div>
           <Input
             label="Expected Attendees"
             type="number"
@@ -181,7 +224,7 @@ const EventDetailsSection = ({
                     <p className="text-xs text-muted-foreground">Conflicting bookings:</p>
                     {conflictingBookings?.map((booking, index) => (
                       <div key={index} className="text-xs text-foreground bg-background/50 p-2 rounded">
-                        {booking?.eventTitle} - {booking?.timeSlot}
+                        {booking?.eventTitle} - {booking?.startTime} to {booking?.endTime}
                       </div>
                     ))}
                   </div>
