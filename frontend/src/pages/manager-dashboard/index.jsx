@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/navigation/MainLayout';
 import Breadcrumbs from '../../components/navigation/Breadcrumbs';
 import MetricsCard from './components/MetricsCard';
+import AvailabilityCalendar from './components/AvailabilityCalendar';
 import ConflictDetectionPanel from './components/ConflictDetectionPanel';
 import QuickActionsPanel from './components/QuickActionsPanel';
 import RecentActivityFeed from './components/RecentActivityFeed';
@@ -235,6 +236,17 @@ const ManagerDashboard = () => {
         </div>
 
         {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-6 md:mb-8">
+          
+          {/* Availability Calendar - Takes 1 column */}
+          <div className="lg:col-span-1">
+            <AvailabilityCalendar
+              bookings={bookings}
+              onDateSelect={handleDateSelect}
+            />
+          </div>
+        </div>
+
         {/* Secondary Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
           {/* Conflict Detection */}
