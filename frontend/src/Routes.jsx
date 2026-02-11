@@ -7,6 +7,7 @@ import FacultyDashboard from './pages/faculty-dashboard';
 import BookingRequestForm from './pages/booking-request-form';
 import BookingCalendarView from './pages/booking-calendar-view';
 import BookingHistory from './pages/booking-history';
+import RequestDetails from './pages/request-details';
 import LoginPage from './pages/login-page';
 
 const Routes = () => {
@@ -21,6 +22,7 @@ const Routes = () => {
         <Route path="/booking-request-form" element={<BookingRequestForm />} />
         <Route path="/booking-calendar-view" element={<BookingCalendarView />} />
         <Route path="/booking-history" element={<BookingHistory />} />
+        <Route path="/request-details" element={<RequestDetails />} />
       </RouterRoutes>
       </ErrorBoundary>
     </BrowserRouter>

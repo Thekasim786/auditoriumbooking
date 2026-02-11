@@ -30,6 +30,20 @@ const DayView = ({ bookings, selectedBooking, onBookingSelect }) => {
                   <div className="p-3 md:p-4 text-sm text-muted-foreground border-r border-border bg-muted/30">
                     {slot}
                   </div>
+
+                  <div className="p-2 md:p-3">
+                    {booking ? (
+                      <BookingBlock
+                        booking={booking}
+                        onSelect={onBookingSelect}
+                        isSelected={selectedBooking?.id === booking?.id}
+                      />
+                    ) : (
+                      <div className="h-full min-h-[60px] flex items-center justify-center text-sm text-muted-foreground border-2 border-dashed border-border rounded-lg">
+                        Available
+                      </div>
+                    )}
+                  </div>
                   
                 </React.Fragment>
               );

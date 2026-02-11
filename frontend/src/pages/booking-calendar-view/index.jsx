@@ -6,6 +6,7 @@ import CalendarFilters from './components/CalendarFilters';
 import DayView from './components/DayView';
 import WeekView from './components/WeekView';
 import MonthView from './components/MonthView';
+import BookingDetailPanel from './components/BookingDetailPanel';
 
 const BookingCalendarView = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -24,7 +25,7 @@ const BookingCalendarView = () => {
       date: new Date(2026, 0, 15),
       timeSlot: "09:00 - 12:00",
       auditorium: "Main Auditorium (500 Seats)",
-      purpose: "National level science conference where scientists and researchers from across the country will participate. This conference will discuss the latest scientific research and technological progress.",
+      purpose: "A national-level science conference where scientists and researchers from across the country will participate. This conference will discuss the latest scientific research and technological advancements.",
       facilities: ["Projector", "Microphone", "Air Conditioning", "Wi-Fi"],
       expectedAttendees: 450,
       status: "confirmed",
@@ -43,13 +44,13 @@ const BookingCalendarView = () => {
     },
     {
       id: 2,
-      eventTitle: "Student Talent Show Program",
+      eventTitle: "Student Talent Showcase Program",
       facultyName: "Prof. Priya Sharma",
       department: "Arts Department",
       date: new Date(2026, 0, 15),
       timeSlot: "14:00 - 17:00",
       auditorium: "Seminar Hall (200 Seats)",
-      purpose: "Annual student talent show program showcasing students' talents in various art forms.",
+      purpose: "Annual student talent showcase program featuring students' talents in various art forms.",
       facilities: ["Sound System", "Stage Lighting", "Microphone"],
       expectedAttendees: 180,
       status: "pending",
@@ -94,7 +95,7 @@ const BookingCalendarView = () => {
       date: new Date(2026, 0, 17),
       timeSlot: "10:00 - 13:00",
       auditorium: "Conference Room (100 Seats)",
-      purpose: "Practical workshop on Artificial Intelligence and Machine Learning providing hands-on experience to students.",
+      purpose: "Practical workshop on Artificial Intelligence and Machine Learning providing students with hands-on experience.",
       facilities: ["Projector", "Wi-Fi", "Whiteboard", "Computer Lab Access"],
       expectedAttendees: 85,
       status: "confirmed",
@@ -119,7 +120,7 @@ const BookingCalendarView = () => {
       date: new Date(2026, 0, 18),
       timeSlot: "15:00 - 18:00",
       auditorium: "Mini Auditorium (150 Seats)",
-      purpose: "Special symposium on contemporary Hindi literature featuring renowned writers and poets.",
+      purpose: "Special symposium on contemporary Hindi literature featuring renowned authors and poets.",
       facilities: ["Microphone", "Projector", "Air Conditioning"],
       expectedAttendees: 120,
       status: "pending",
@@ -290,9 +291,7 @@ const BookingCalendarView = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            {isMobile ? (
-              pass
-            ) : (
+            {(
               <>
                 {viewMode === 'day' && (
                   <DayView
@@ -322,7 +321,40 @@ const BookingCalendarView = () => {
             )}
           </div>
 
-          
+          <div className="lg:col-span-1">
+            {selectedBooking ? (
+              <BookingDetailPanel
+                booking={selectedBooking}
+                onClose={handleClosePanel}
+                onEdit={handleEditBooking}
+                onCancel={handleCancelBooking}
+              />
+            ) : (
+              <div className="bg-card border border-border rounded-xl p-8 text-center shadow-elevation-1 sticky top-6">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-8 h-8 text-primary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Select a Booking
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Choose a booking from the calendar to view details
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </MainLayout>
