@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes as RouterRoutes, Route } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
 import ErrorBoundary from "./components/ErrorBoundary";
+import NotFound from "./pages/NotFound";
 import ManagerDashboard from './pages/manager-dashboard';
 import FacultyDashboard from './pages/faculty-dashboard';
 import BookingRequestForm from './pages/booking-request-form';
@@ -23,6 +24,7 @@ const Routes = () => {
         <Route path="/booking-calendar-view" element={<BookingCalendarView />} />
         <Route path="/booking-history" element={<BookingHistory />} />
         <Route path="/request-details" element={<RequestDetails />} />
+        <Route path="*" element={<NotFound />} />
       </RouterRoutes>
       </ErrorBoundary>
     </BrowserRouter>

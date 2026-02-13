@@ -24,6 +24,12 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
       roleAccess: 'faculty'
     },
     {
+      label: 'Calendar',
+      path: '/booking-calendar-view',
+      icon: 'Calendar',
+      roleAccess: 'faculty'
+    },
+    {
       label: 'My Bookings',
       path: '/booking-history',
       icon: 'History',
