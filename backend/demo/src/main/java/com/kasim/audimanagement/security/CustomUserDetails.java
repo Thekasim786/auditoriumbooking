@@ -8,7 +8,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.stream.Collectors;
+import java.util.List;
 
 @AllArgsConstructor
 @Getter
@@ -18,19 +18,21 @@ public class CustomUserDetails implements UserDetails {
     private String email;
     private String password;
     private String fullName;
+    private String role;
     private Boolean enabled;
     private Collection<? extends GrantedAuthority> authorities;
 
     public static CustomUserDetails build(User user) {
-        var authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.name()))
-                .collect(Collectors.toList());
+        List<GrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority(user.getRole().name())
+        );
 
         return new CustomUserDetails(
                 user.getId(),
                 user.getEmail(),
                 user.getPassword(),
                 user.getFullName(),
+                user.getRole().name(),
                 user.getEnabled(),
                 authorities
         );

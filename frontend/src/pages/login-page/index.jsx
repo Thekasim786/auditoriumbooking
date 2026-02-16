@@ -68,7 +68,6 @@ const LoginPage = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Server returned validation errors
         if (data.errors) {
           setErrors(data.errors);
         } else {
@@ -77,21 +76,21 @@ const LoginPage = () => {
         return;
       }
 
-      // Login successful — store token and user info
+      // Store token and user info (single role, not array)
       const storage = formData.rememberMe ? localStorage : sessionStorage;
       storage.setItem('token', data.token);
       storage.setItem('user', JSON.stringify({
         id: data.id,
         email: data.email,
         fullName: data.fullName,
-        roles: data.roles,
+        role: data.role,
       }));
 
       // Redirect based on role
-      if (data.roles?.includes('ROLE_ADMIN')) {
-        navigate('/admin/dashboard');
+      if (data.role === 'ROLE_MANAGER') {
+        navigate('/manager/dashboard');
       } else {
-        navigate('/dashboard');
+        navigate('/faculty/dashboard');
       }
 
     } catch (error) {
@@ -103,7 +102,6 @@ const LoginPage = () => {
   };
 
   const handleGoogleLogin = () => {
-    // Redirect to Spring Boot OAuth2 endpoint
     window.location.href = `${API_BASE_URL.replace('/api', '')}/oauth2/authorize/google`;
   };
 
@@ -121,7 +119,6 @@ const LoginPage = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-8">
-          {/* General error banner */}
           {errors?.general && (
             <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-200">
               <p className="text-sm text-red-600 text-center">{errors.general}</p>

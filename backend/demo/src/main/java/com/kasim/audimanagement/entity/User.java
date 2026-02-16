@@ -6,12 +6,11 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
-        @UniqueConstraint(columnNames = "email")
+        @UniqueConstraint(columnNames = "email"),
+        @UniqueConstraint(columnNames = "username")
 })
 @Getter
 @Setter
@@ -24,6 +23,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
+    private String username;
+
     @Column(nullable = false)
     private String fullName;
 
@@ -35,16 +37,14 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private AuthProvider provider = AuthProvider.LOCAL;
 
     private String providerId;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
-    @Column(name = "role")
-    @Builder.Default
-    private Set<Role> roles = new HashSet<>();
+    @Column(nullable = false)
+    private Role role;
 
     @Column(nullable = false)
     @Builder.Default
@@ -57,9 +57,8 @@ public class User {
     private LocalDateTime updatedAt;
 
     public enum Role {
-        ROLE_USER,
         ROLE_FACULTY,
-        ROLE_ADMIN
+        ROLE_MANAGER
     }
 
     public enum AuthProvider {

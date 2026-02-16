@@ -11,14 +11,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,17 +41,13 @@ public class AuthService {
 
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
-            Set<String> roles = userDetails.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.toSet());
-
             return AuthResponse.builder()
                     .token(jwt)
                     .type("Bearer")
                     .id(userDetails.getId())
                     .email(userDetails.getUsername())
                     .fullName(userDetails.getFullName())
-                    .roles(roles)
+                    .role(userDetails.getRole())
                     .build();
 
         } catch (BadCredentialsException ex) {
@@ -71,10 +63,11 @@ public class AuthService {
 
         User user = User.builder()
                 .fullName(signupRequest.getFullName())
+                .username(signupRequest.getEmail())
                 .email(signupRequest.getEmail())
                 .password(passwordEncoder.encode(signupRequest.getPassword()))
                 .provider(User.AuthProvider.LOCAL)
-                .roles(Set.of(User.Role.ROLE_FACULTY))
+                .role(User.Role.ROLE_FACULTY)
                 .enabled(true)
                 .build();
 
@@ -87,15 +80,11 @@ public class AuthService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
 
-        Set<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toSet());
-
         return AuthResponse.builder()
                 .id(userDetails.getId())
                 .email(userDetails.getUsername())
                 .fullName(userDetails.getFullName())
-                .roles(roles)
+                .role(userDetails.getRole())
                 .build();
     }
 }
