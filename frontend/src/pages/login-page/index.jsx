@@ -69,7 +69,7 @@ const LoginPage = () => {
 
       if (!response.ok) {
         if (data.errors) {
-          setErrors(data.errors);
+          setErrors(data.errors); 
         } else {
           setErrors({ general: data.message || 'Invalid email or password' });
         }
