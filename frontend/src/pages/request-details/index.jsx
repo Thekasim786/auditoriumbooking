@@ -95,7 +95,7 @@ const RequestDetails = () => {
 
   },
   {
-    name: "Seminar Hall",
+    name: "Seminar Hall A",
     location: "Academic Block B, First Floor",
     capacity: 200,
     floor: "First Floor",
@@ -104,6 +104,20 @@ const RequestDetails = () => {
     "Projector",
     "Sound System",
     "Microphones",
+    "Air Conditioning",
+    "WiFi"]
+
+  },
+  {
+    name: "Conference Room 1",
+    location: "Administrative Block, Second Floor",
+    capacity: 100,
+    floor: "Second Floor",
+    isAvailable: false,
+    availableFacilities: [
+    "Projector",
+    "Video Conferencing",
+    "Whiteboard",
     "Air Conditioning",
     "WiFi"]
 
@@ -245,6 +259,10 @@ const RequestDetails = () => {
 
           <div className="space-y-6 md:space-y-8">
             <RequestTimeline timeline={mockTimeline} />
+            
+            
+
+
 
           </div>
         </div>

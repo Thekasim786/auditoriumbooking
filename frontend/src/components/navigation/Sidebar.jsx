@@ -13,7 +13,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
   const facultyNavItems = [
     {
       label: 'Dashboard',
-      path: '/faculty-dashboard',
+      path: '/faculty/dashboard',
       icon: 'LayoutDashboard',
       roleAccess: 'faculty'
     },
@@ -40,7 +40,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
   const managerNavItems = [
     {
       label: 'Dashboard',
-      path: '/manager-dashboard',
+      path: '/manager/dashboard',
       icon: 'LayoutDashboard',
       roleAccess: 'manager',
       badge: notifications?.newRequests

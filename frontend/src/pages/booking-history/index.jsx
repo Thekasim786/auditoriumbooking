@@ -25,6 +25,14 @@ const BookingHistory = () => {
     submissionFrom: '',
     submissionTo: ''
   });
+  
+  const getUserRole = () => {
+    const storedRole = sessionStorage.getItem('userRole');
+    if (storedRole) return storedRole;
+    return window.location.pathname.includes('/manager/') ? 'manager' : 'faculty';
+  };
+  
+  const userRole = getUserRole();
 
   const mockBookings = [
     {
@@ -270,7 +278,7 @@ const BookingHistory = () => {
         <title>Booking History - AuditoriumBooking</title>
         <meta name="description" content="View and manage your auditorium booking history with advanced filtering and analytics" />
       </Helmet>
-      <MainLayout userRole="faculty">
+      <MainLayout userRole={userRole}>
         <div className="space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>

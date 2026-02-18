@@ -15,6 +15,14 @@ const BookingCalendarView = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  
+  const getUserRole = () => {
+    const storedRole = sessionStorage.getItem('userRole');
+    if (storedRole) return storedRole;
+    return window.location.pathname.includes('/manager/') ? 'manager' : 'faculty';
+  };
+  
+  const userRole = getUserRole();
 
   const mockBookings = [
     {
@@ -256,7 +264,7 @@ const BookingCalendarView = () => {
   const filteredBookings = getFilteredBookings();
 
   return (
-    <MainLayout userRole="manager">
+    <MainLayout userRole={userRole}>
       <div className="space-y-6">
         <Breadcrumbs />
 

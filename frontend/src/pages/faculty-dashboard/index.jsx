@@ -1,11 +1,14 @@
 import React from 'react';
 import MainLayout from '../../components/navigation/MainLayout';
 import Breadcrumbs from '../../components/navigation/Breadcrumbs';
-import QuickBookingPanel from './components/QuickBookingPanel';
 import StatusDashboard from './components/StatusDashboard';
 import StatsOverview from './components/StatsOverview';
 
 const FacultyDashboard = () => {
+  React.useEffect(() => {
+    sessionStorage.setItem('userRole', 'faculty');
+  }, []);
+
   return (
     <MainLayout userRole="faculty">
       <div className="max-w-7xl mx-auto">
@@ -22,12 +25,8 @@ const FacultyDashboard = () => {
 
         <StatsOverview />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          <div className="lg:col-span-1">
-            <QuickBookingPanel />
-          </div>
-          
-          {<div className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">        
+          {<div className="lg:col-span-3">
             <StatusDashboard />
           </div>}
         </div>

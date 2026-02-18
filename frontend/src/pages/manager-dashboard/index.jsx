@@ -11,6 +11,10 @@ import RecentActivityFeed from './components/RecentActivityFeed';
 const ManagerDashboard = () => {
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    sessionStorage.setItem('userRole', 'manager');
+  }, []);
+
   const [pendingRequests] = useState([
     {
       id: "REQ001",
