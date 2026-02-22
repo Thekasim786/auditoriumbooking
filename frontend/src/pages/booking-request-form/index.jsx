@@ -222,19 +222,82 @@ const BookingRequestForm = () => {
     return Object.keys(newErrors)?.length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+const handleSubmit = async () => {
+  if (!validateForm()) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  const token =
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token");
+
+  if (!token) {
+    navigate("/login");
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    const bookingPayload = {
+  venue: formData.venue,
+  eventType: formData.eventType,
+  eventTitle: formData.eventTitle,
+  eventStartDate: formData.eventStartDate,
+  eventEndDate: formData.eventEndDate,
+  startTime: formData.startTime,
+  endTime: formData.endTime,
+
+  expectedAttendees: Number(formData.expectedAttendees),   // 🔥 FIX
+
+  eventPurpose: formData.eventPurpose,
+
+  seatingArrangement: formData.seatingArrangement,
+  seatingCapacity: Number(formData.seatingCapacity),       // 🔥 FIX
+  stageRequirement: formData.stageRequirement,
+
+  projector: formData.technicalEquipment.projector,
+  microphone: formData.technicalEquipment.microphone,
+  soundSystem: formData.technicalEquipment.soundSystem,
+  whiteboard: formData.technicalEquipment.whiteboard,
+  videoConferencing: formData.technicalEquipment.videoConferencing,
+  wifi: formData.technicalEquipment.wifi,
+
+  catering: formData.additionalServices.catering,
+  photography: formData.additionalServices.photography,
+  recording: formData.additionalServices.recording,
+  parking: formData.additionalServices.parking,
+
+  specialRequirements: formData.specialRequirements,
+  priority: formData.priority
+};
+    const response = await fetch(
+      "http://localhost:8080/api/bookings/create",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify(bookingPayload)
+      }
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || "Booking failed");
     }
 
-    setIsSubmitting(true);
+    navigate("/faculty/dashboard");
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      navigate('/booking-history');
-    }, 2000);
-  };
+  } catch (error) {
+    console.error("Booking error:", error);
+    alert("Failed to create booking.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleSaveDraft = () => {
     navigate('/faculty-dashboard');
