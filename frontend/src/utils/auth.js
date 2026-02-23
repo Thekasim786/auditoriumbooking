@@ -1,5 +1,4 @@
 // src/utils/auth.js
-// Helper functions for authentication throughout your React app
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -26,11 +25,27 @@ export const isAuthenticated = () => {
 };
 
 /**
- * Check if user has a specific role
+ * Check if user is Manager
  */
-export const hasRole = (role) => {
+export const isManager = () => {
   const user = getUser();
-  return user?.roles?.includes(role) || false;
+  return user?.role === 'ROLE_MANAGER';
+};
+
+/**
+ * Check if user is Faculty
+ */
+export const isFaculty = () => {
+  const user = getUser();
+  return user?.role === 'ROLE_FACULTY';
+};
+
+/**
+ * Get user's role string
+ */
+export const getRole = () => {
+  const user = getUser();
+  return user?.role || null;
 };
 
 /**
@@ -49,8 +64,8 @@ export const logout = (navigate) => {
  * Automatically attaches the JWT Bearer token.
  *
  * Usage:
- *   const data = await authFetch('/auth/me');
- *   const data = await authFetch('/bookings', { method: 'POST', body: JSON.stringify(payload) });
+ *   const res = await authFetch('/faculty/bookings');
+ *   const res = await authFetch('/faculty/bookings', { method: 'POST', body: JSON.stringify(payload) });
  */
 export const authFetch = async (endpoint, options = {}) => {
   const token = getToken();
@@ -64,7 +79,6 @@ export const authFetch = async (endpoint, options = {}) => {
     },
   });
 
-  // If 401, token expired — force logout
   if (response.status === 401) {
     logout();
     window.location.href = '/login';

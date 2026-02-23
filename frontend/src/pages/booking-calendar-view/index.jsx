@@ -7,6 +7,7 @@ import DayView from './components/DayView';
 import WeekView from './components/WeekView';
 import MonthView from './components/MonthView';
 import BookingDetailPanel from './components/BookingDetailPanel';
+import { authFetch, isManager } from '../../utils/auth';
 
 const BookingCalendarView = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -15,181 +16,121 @@ const BookingCalendarView = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockBookings = [
-    {
-      id: 1,
-      eventTitle: "National Science Conference 2026",
-      facultyName: "Dr. Rajesh Kumar",
-      department: "Physics Department",
-      date: new Date(2026, 0, 15),
-      timeSlot: "09:00 - 12:00",
-      auditorium: "Main Auditorium (500 Seats)",
-      purpose: "A national-level science conference where scientists and researchers from across the country will participate. This conference will discuss the latest scientific research and technological advancements.",
-      facilities: ["Projector", "Microphone", "Air Conditioning", "Wi-Fi"],
-      expectedAttendees: 450,
-      status: "confirmed",
-      approvalHistory: [
-        {
-          action: "Request Submitted",
-          by: "Dr. Rajesh Kumar",
-          timestamp: new Date(2026, 0, 1, 10, 30)
-        },
-        {
-          action: "Approved",
-          by: "Dr. Anil Sharma (Auditorium Manager)",
-          timestamp: new Date(2026, 0, 2, 14, 15)
-        }
-      ]
-    },
-    {
-      id: 2,
-      eventTitle: "Student Talent Showcase Program",
-      facultyName: "Prof. Priya Sharma",
-      department: "Arts Department",
-      date: new Date(2026, 0, 15),
-      timeSlot: "14:00 - 17:00",
-      auditorium: "Seminar Hall (200 Seats)",
-      purpose: "Annual student talent showcase program featuring students' talents in various art forms.",
-      facilities: ["Sound System", "Stage Lighting", "Microphone"],
-      expectedAttendees: 180,
-      status: "pending",
-      approvalHistory: [
-        {
-          action: "Request Submitted",
-          by: "Prof. Priya Sharma",
-          timestamp: new Date(2026, 0, 10, 9, 0)
-        }
-      ]
-    },
-    {
-      id: 3,
-      eventTitle: "International Yoga Day Celebration",
-      facultyName: "Dr. Sunita Verma",
-      department: "Physical Education Department",
-      date: new Date(2026, 0, 16),
-      timeSlot: "06:00 - 08:00",
-      auditorium: "Main Auditorium (500 Seats)",
-      purpose: "Special yoga session and health awareness program on the occasion of International Yoga Day.",
-      facilities: ["Sound System", "Yoga Mats", "Projector"],
-      expectedAttendees: 300,
-      status: "confirmed",
-      approvalHistory: [
-        {
-          action: "Request Submitted",
-          by: "Dr. Sunita Verma",
-          timestamp: new Date(2025, 11, 20, 11, 0)
-        },
-        {
-          action: "Approved",
-          by: "Dr. Anil Sharma (Auditorium Manager)",
-          timestamp: new Date(2025, 11, 21, 16, 30)
-        }
-      ]
-    },
-    {
-      id: 4,
-      eventTitle: "Technical Workshop - AI and Machine Learning",
-      facultyName: "Prof. Amit Patel",
-      department: "Computer Science Department",
-      date: new Date(2026, 0, 17),
-      timeSlot: "10:00 - 13:00",
-      auditorium: "Conference Room (100 Seats)",
-      purpose: "Practical workshop on Artificial Intelligence and Machine Learning providing students with hands-on experience.",
-      facilities: ["Projector", "Wi-Fi", "Whiteboard", "Computer Lab Access"],
-      expectedAttendees: 85,
-      status: "confirmed",
-      approvalHistory: [
-        {
-          action: "Request Submitted",
-          by: "Prof. Amit Patel",
-          timestamp: new Date(2026, 0, 5, 14, 20)
-        },
-        {
-          action: "Approved",
-          by: "Dr. Anil Sharma (Auditorium Manager)",
-          timestamp: new Date(2026, 0, 6, 10, 45)
-        }
-      ]
-    },
-    {
-      id: 5,
-      eventTitle: "Literary Symposium",
-      facultyName: "Dr. Meena Desai",
-      department: "Hindi Literature Department",
-      date: new Date(2026, 0, 18),
-      timeSlot: "15:00 - 18:00",
-      auditorium: "Mini Auditorium (150 Seats)",
-      purpose: "Special symposium on contemporary Hindi literature featuring renowned authors and poets.",
-      facilities: ["Microphone", "Projector", "Air Conditioning"],
-      expectedAttendees: 120,
-      status: "pending",
-      approvalHistory: [
-        {
-          action: "Request Submitted",
-          by: "Dr. Meena Desai",
-          timestamp: new Date(2026, 0, 12, 11, 30)
-        }
-      ]
-    },
-    {
-      id: 6,
-      eventTitle: "Startup Pitch Competition",
-      facultyName: "Prof. Vikram Singh",
-      department: "Management Department",
-      date: new Date(2026, 0, 19),
-      timeSlot: "09:00 - 12:00",
-      auditorium: "Seminar Hall (200 Seats)",
-      purpose: "Startup idea pitch competition for student entrepreneurs featuring investors and industry experts.",
-      facilities: ["Projector", "Microphone", "Wi-Fi", "Whiteboard"],
-      expectedAttendees: 150,
-      status: "confirmed",
-      approvalHistory: [
-        {
-          action: "Request Submitted",
-          by: "Prof. Vikram Singh",
-          timestamp: new Date(2025, 11, 28, 15, 0)
-        },
-        {
-          action: "Approved",
-          by: "Dr. Anil Sharma (Auditorium Manager)",
-          timestamp: new Date(2025, 11, 29, 9, 30)
-        }
-      ]
-    },
-    {
-      id: 7,
-      eventTitle: "Environmental Awareness Seminar",
-      facultyName: "Dr. Ravi Kumar",
-      department: "Environmental Science Department",
-      date: new Date(2026, 0, 20),
-      timeSlot: "11:00 - 14:00",
-      auditorium: "Conference Room (100 Seats)",
-      purpose: "Awareness seminar on climate change and environmental conservation.",
-      facilities: ["Projector", "Microphone", "Air Conditioning"],
-      expectedAttendees: 90,
-      status: "cancelled",
-      approvalHistory: [
-        {
-          action: "Request Submitted",
-          by: "Dr. Ravi Kumar",
-          timestamp: new Date(2026, 0, 8, 10, 0)
-        },
-        {
-          action: "Approved",
-          by: "Dr. Anil Sharma (Auditorium Manager)",
-          timestamp: new Date(2026, 0, 9, 14, 0)
-        },
-        {
-          action: "Cancelled",
-          by: "Dr. Ravi Kumar",
-          timestamp: new Date(2026, 0, 11, 16, 0)
-        }
-      ]
+  const userIsManager = isManager();
+  const userRole = userIsManager ? 'manager' : 'faculty';
+
+  // Fetch bookings from backend
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    try {
+      const endpoint = userIsManager ? '/manager/bookings' : '/faculty/bookings';
+      const response = await authFetch(endpoint);
+
+      if (!response.ok) throw new Error('Failed to fetch bookings');
+
+      const data = await response.json();
+
+      // Transform backend response to match calendar component format
+      const transformed = data.map((booking) => ({
+        id: booking.id,
+        eventTitle: booking.eventTitle,
+        facultyName: booking.facultyName,
+        department: '',
+        date: new Date(booking.eventStartDate + 'T00:00:00'),
+        timeSlot: booking.startTime && booking.endTime
+          ? `${booking.startTime} - ${booking.endTime}` : '',
+        auditorium: booking.venue || 'Not Assigned',
+        purpose: booking.eventPurpose || '',
+        facilities: formatFacilitiesArray(booking.technicalEquipment, booking.additionalServices),
+        expectedAttendees: booking.expectedAttendees || 0,
+        status: mapStatus(booking.status),
+        approvalHistory: buildApprovalHistory(booking),
+        // Keep raw data for API calls
+        _raw: booking
+      }));
+
+      setBookings(transformed);
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const [bookings, setBookings] = useState(mockBookings);
+  // Map backend status to frontend status names
+  const mapStatus = (status) => {
+    switch (status?.toUpperCase()) {
+      case 'APPROVED': return 'confirmed';
+      case 'PENDING': return 'pending';
+      case 'REJECTED': return 'cancelled';
+      default: return status?.toLowerCase() || 'pending';
+    }
+  };
+
+  // Convert equipment/services maps to array of strings
+  const formatFacilitiesArray = (technicalEquipment, additionalServices) => {
+    const facilities = [];
+
+    if (technicalEquipment && typeof technicalEquipment === 'object') {
+      Object.entries(technicalEquipment).forEach(([key, value]) => {
+        if (value) {
+          facilities.push(
+            key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()
+          );
+        }
+      });
+    }
+
+    if (additionalServices && typeof additionalServices === 'object') {
+      Object.entries(additionalServices).forEach(([key, value]) => {
+        if (value) {
+          facilities.push(
+            key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()
+          );
+        }
+      });
+    }
+
+    return facilities;
+  };
+
+  // Build approval history timeline from booking data
+  const buildApprovalHistory = (booking) => {
+    const history = [];
+
+    if (booking.createdAt) {
+      history.push({
+        action: 'Request Submitted',
+        by: booking.facultyName || 'Faculty',
+        timestamp: new Date(booking.createdAt)
+      });
+    }
+
+    if (booking.reviewedAt && booking.status === 'APPROVED') {
+      history.push({
+        action: 'Approved',
+        by: booking.reviewedByName ? `${booking.reviewedByName} (Auditorium Manager)` : 'Auditorium Manager',
+        timestamp: new Date(booking.reviewedAt)
+      });
+    }
+
+    if (booking.reviewedAt && booking.status === 'REJECTED') {
+      history.push({
+        action: 'Rejected',
+        by: booking.reviewedByName ? `${booking.reviewedByName} (Auditorium Manager)` : 'Auditorium Manager',
+        timestamp: new Date(booking.reviewedAt)
+      });
+    }
+
+    return history;
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -225,7 +166,7 @@ const BookingCalendarView = () => {
   };
 
   const handleRefresh = () => {
-    setBookings([...mockBookings]);
+    fetchBookings();
   };
 
   const handleBookingSelect = (booking) => {
@@ -240,8 +181,56 @@ const BookingCalendarView = () => {
     console.log('Edit booking:', booking);
   };
 
-  const handleCancelBooking = (booking) => {
-    console.log('Cancel booking:', booking);
+  const handleCancelBooking = async (booking) => {
+    if (!booking?._raw?.id) {
+      console.log('Cancel booking:', booking);
+      return;
+    }
+
+    if (userIsManager) {
+      // Manager rejects the booking
+      try {
+        const response = await authFetch('/manager/bookings/review', {
+          method: 'POST',
+          body: JSON.stringify({
+            bookingId: booking._raw.id,
+            action: 'REJECTED',
+            remarks: 'Cancelled from calendar view'
+          })
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          alert(data.message || 'Failed to cancel booking');
+          return;
+        }
+
+        setSelectedBooking(null);
+        fetchBookings();
+      } catch (err) {
+        console.error('Cancel error:', err);
+        alert('Failed to cancel booking');
+      }
+    } else {
+      // Faculty deletes their pending booking
+      try {
+        const response = await authFetch(`/faculty/bookings/${booking._raw.id}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          alert(data.message || 'Failed to cancel booking');
+          return;
+        }
+
+        setSelectedBooking(null);
+        fetchBookings();
+      } catch (err) {
+        console.error('Cancel error:', err);
+        alert('Failed to cancel booking');
+      }
+    }
   };
 
   const getFilteredBookings = () => {
@@ -256,7 +245,7 @@ const BookingCalendarView = () => {
   const filteredBookings = getFilteredBookings();
 
   return (
-    <MainLayout userRole="manager">
+    <MainLayout userRole={userRole}>
       <div className="space-y-6">
         <Breadcrumbs />
 
@@ -289,73 +278,83 @@ const BookingCalendarView = () => {
           />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            {(
-              <>
-                {viewMode === 'day' && (
-                  <DayView
-                    bookings={filteredBookings}
-                    selectedBooking={selectedBooking}
-                    onBookingSelect={handleBookingSelect}
-                  />
-                )}
-                {viewMode === 'week' && (
-                  <WeekView
-                    bookings={filteredBookings}
-                    currentDate={currentDate}
-                    selectedBooking={selectedBooking}
-                    onBookingSelect={handleBookingSelect}
-                  />
-                )}
-                {viewMode === 'month' && (
-                  <MonthView
-                    bookings={filteredBookings}
-                    currentDate={currentDate}
-                    selectedBooking={selectedBooking}
-                    onBookingSelect={handleBookingSelect}
-                    onDateSelect={handleDateSelect}
-                  />
-                )}
-              </>
-            )}
+        {loading ? (
+          <div className="bg-card border border-border rounded-xl p-12 text-center">
+            <svg className="animate-spin h-10 w-10 text-primary mx-auto mb-4" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <p className="text-muted-foreground">Loading bookings...</p>
           </div>
-
-          <div className="lg:col-span-1">
-            {selectedBooking ? (
-              <BookingDetailPanel
-                booking={selectedBooking}
-                onClose={handleClosePanel}
-                onEdit={handleEditBooking}
-                onCancel={handleCancelBooking}
-              />
-            ) : (
-              <div className="bg-card border border-border rounded-xl p-8 text-center shadow-elevation-1 sticky top-6">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-primary"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              {(
+                <>
+                  {viewMode === 'day' && (
+                    <DayView
+                      bookings={filteredBookings}
+                      selectedBooking={selectedBooking}
+                      onBookingSelect={handleBookingSelect}
                     />
-                  </svg>
+                  )}
+                  {viewMode === 'week' && (
+                    <WeekView
+                      bookings={filteredBookings}
+                      currentDate={currentDate}
+                      selectedBooking={selectedBooking}
+                      onBookingSelect={handleBookingSelect}
+                    />
+                  )}
+                  {viewMode === 'month' && (
+                    <MonthView
+                      bookings={filteredBookings}
+                      currentDate={currentDate}
+                      selectedBooking={selectedBooking}
+                      onBookingSelect={handleBookingSelect}
+                      onDateSelect={handleDateSelect}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="lg:col-span-1">
+              {selectedBooking ? (
+                <BookingDetailPanel
+                  booking={selectedBooking}
+                  onClose={handleClosePanel}
+                  onEdit={handleEditBooking}
+                  onCancel={handleCancelBooking}
+                />
+              ) : (
+                <div className="bg-card border border-border rounded-xl p-8 text-center shadow-elevation-1 sticky top-6">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <svg
+                      className="w-8 h-8 text-primary"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Select a Booking
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Choose a booking from the calendar to view details
+                  </p>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  Select a Booking
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Choose a booking from the calendar to view details
-                </p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </MainLayout>
   );

@@ -7,6 +7,7 @@ import EventDetailsSection from './components/EventDetailsSection';
 import FacilityRequirementsSection from './components/FacilityRequirementsSection';
 import SubmissionSection from './components/SubmissionSection';
 import Icon from '../../components/AppIcon';
+import { authFetch, getUser } from '../../utils/auth';
 
 const BookingRequestForm = () => {
   const navigate = useNavigate();
@@ -48,62 +49,52 @@ const BookingRequestForm = () => {
   });
 
   const [errors, setErrors] = useState({});
-
-  const mockExistingBookings = [
-    {
-      eventTitle: 'Annual Tech Conference 2026',
-      eventStartDate: '2026-01-20',
-      eventEndDate: '2026-01-20',
-      startTime: '09:00',
-      endTime: '11:00',
-      status: 'approved'
-    },
-    {
-      eventTitle: 'Cultural Festival Opening Ceremony',
-      eventStartDate: '2026-01-20',
-      eventEndDate: '2026-01-20',
-      startTime: '15:00',
-      endTime: '17:00',
-      status: 'approved'
-    },
-    {
-      eventTitle: 'Guest Lecture Series',
-      eventStartDate: '2026-01-25',
-      eventEndDate: '2026-01-25',
-      startTime: '11:00',
-      endTime: '13:00',
-      status: 'approved'
-    }
-  ];
-
   const [conflictingBookings, setConflictingBookings] = useState([]);
 
+  // Check availability from backend when date/time changes
   useEffect(() => {
     if (formData?.eventStartDate && formData?.startTime && formData?.endTime) {
       checkAvailability();
     }
   }, [formData?.eventStartDate, formData?.startTime, formData?.endTime]);
 
-  const checkAvailability = () => {
-    const conflicts = mockExistingBookings?.filter(
-      (booking) =>
-        booking?.eventStartDate === formData?.eventStartDate &&
-        booking?.startTime === formData?.startTime &&
-        booking?.endTime === formData?.endTime &&
-        booking?.status === 'approved'
-    );
+  const checkAvailability = async () => {
+    try {
+      const response = await authFetch(
+        `/bookings/date/${formData.eventStartDate}`
+      );
 
-    if (conflicts?.length > 0) {
-      setAvailabilityStatus({
-        available: false,
-        message: 'The selected time slot is not available. Please choose another time.'
+      if (!response.ok) {
+        setAvailabilityStatus(null);
+        return;
+      }
+
+      const approvedBookings = await response.json();
+
+      // Check for time overlap with approved bookings
+      const conflicts = approvedBookings?.filter((booking) => {
+        return (
+          booking.startTime < formData.endTime &&
+          booking.endTime > formData.startTime
+        );
       });
-      setConflictingBookings(conflicts);
-    } else {
-      setAvailabilityStatus({
-        available: true,
-        message: 'The selected time slot is available. You can proceed.'
-      });
+
+      if (conflicts?.length > 0) {
+        setAvailabilityStatus({
+          available: false,
+          message: 'The selected time slot is not available. Please choose another time.'
+        });
+        setConflictingBookings(conflicts);
+      } else {
+        setAvailabilityStatus({
+          available: true,
+          message: 'The selected time slot is available. You can proceed.'
+        });
+        setConflictingBookings([]);
+      }
+    } catch (error) {
+      // Silently handle — availability check is optional
+      setAvailabilityStatus(null);
       setConflictingBookings([]);
     }
   };
@@ -230,14 +221,52 @@ const BookingRequestForm = () => {
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const response = await authFetch('/faculty/bookings', {
+        method: 'POST',
+        body: JSON.stringify({
+          eventType: formData.eventType,
+          eventTitle: formData.eventTitle,
+          venue: formData.venue,
+          eventStartDate: formData.eventStartDate,
+          eventEndDate: formData.eventEndDate || formData.eventStartDate,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          expectedAttendees: parseInt(formData.expectedAttendees),
+          eventPurpose: formData.eventPurpose,
+          seatingArrangement: formData.seatingArrangement,
+          seatingCapacity: parseInt(formData.seatingCapacity) || null,
+          stageRequirement: formData.stageRequirement,
+          technicalEquipment: formData.technicalEquipment,
+          additionalServices: formData.additionalServices,
+          specialRequirements: formData.specialRequirements,
+          priority: formData.priority,
+          specialInstructions: formData.specialInstructions
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrors({ general: data.message || 'Failed to submit booking request' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // Success — redirect to booking history
       navigate('/booking-history');
-    }, 2000);
+
+    } catch (error) {
+      console.error('Booking submission error:', error);
+      setErrors({ general: 'Network error. Please check if the server is running.' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSaveDraft = () => {
-    navigate('/faculty-dashboard');
+    navigate('/faculty/dashboard');
   };
 
   return (
@@ -247,7 +276,19 @@ const BookingRequestForm = () => {
 
         <FormHeader />
 
-        {Object.keys(errors)?.length > 0 && (
+        {/* General API error banner */}
+        {errors?.general && (
+          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <Icon name="AlertCircle" size={20} color="var(--color-destructive)" />
+              <div>
+                <p className="text-sm font-medium text-destructive">{errors.general}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {Object.keys(errors)?.filter(k => k !== 'general')?.length > 0 && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">
               <Icon name="AlertCircle" size={20} color="var(--color-destructive)" />
@@ -256,9 +297,11 @@ const BookingRequestForm = () => {
                   Please correct the following errors:
                 </p>
                 <ul className="text-xs text-destructive space-y-1 list-disc list-inside">
-                  {Object.values(errors)?.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
+                  {Object.entries(errors)
+                    ?.filter(([key]) => key !== 'general')
+                    ?.map(([key, error], index) => (
+                      <li key={index}>{error}</li>
+                    ))}
                 </ul>
               </div>
             </div>

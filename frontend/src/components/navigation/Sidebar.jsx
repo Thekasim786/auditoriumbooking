@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../AppIcon';
+import { getUser, isManager, logout } from '../../utils/auth';
 
 const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const user = getUser();
+  const userIsManager = isManager();
+  const effectiveRole = userRole || (userIsManager ? 'manager' : 'faculty');
+
   const [notifications, setNotifications] = useState({
-    newRequests: 3,
-    pendingApprovals: 5
+    newRequests: 0,
+    pendingApprovals: 0
   });
 
   const facultyNavItems = [
     {
       label: 'Dashboard',
-      path: '/faculty-dashboard',
+      path: '/faculty/dashboard',
       icon: 'LayoutDashboard',
       roleAccess: 'faculty'
     },
@@ -40,10 +47,10 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
   const managerNavItems = [
     {
       label: 'Dashboard',
-      path: '/manager-dashboard',
+      path: '/manager/dashboard',
       icon: 'LayoutDashboard',
       roleAccess: 'manager',
-      badge: notifications?.newRequests
+      badge: notifications?.newRequests || null
     },
     {
       label: 'Calendar',
@@ -56,11 +63,11 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
       path: '/booking-history',
       icon: 'History',
       roleAccess: 'manager',
-      badge: notifications?.pendingApprovals
+      badge: notifications?.pendingApprovals || null
     }
   ];
 
-  const navigationItems = userRole === 'manager' ? managerNavItems : facultyNavItems;
+  const navigationItems = effectiveRole === 'manager' ? managerNavItems : facultyNavItems;
 
   useEffect(() => {
     const handleResize = () => {
@@ -89,6 +96,10 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
     if (window.innerWidth < 1024) {
       setIsMobileOpen(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout(navigate);
   };
 
   const isActivePath = (path) => {
@@ -131,10 +142,10 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
-                  {userRole === 'manager' ? 'Dr. Rajesh Kumar' : 'Prof. Priya Sharma'}
+                  {user?.fullName || (effectiveRole === 'manager' ? 'Manager' : 'Faculty')}
                 </p>
                 <p className="text-xs text-muted-foreground capitalize">
-                  {userRole === 'manager' ? 'Auditorium Manager' : 'Faculty Member'}
+                  {effectiveRole === 'manager' ? 'Auditorium Manager' : 'Faculty Member'}
                 </p>
               </div>
             )}
@@ -179,6 +190,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
           </button>
 
           <button
+            onClick={handleLogout}
             className="sidebar-nav-item w-full mt-2"
             aria-label="Logout"
           >

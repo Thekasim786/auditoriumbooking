@@ -5,8 +5,9 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import { Checkbox } from '../../../components/ui/Checkbox';
+import { authFetch } from '../../../utils/auth';
 
-const QuickBookingPanel = () => {
+const QuickBookingPanel = ({ onBookingSubmitted }) => {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(true);
   const [formData, setFormData] = useState({
@@ -23,6 +24,7 @@ const QuickBookingPanel = () => {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const timeSlotOptions = [
     { value: '09:00-11:00', label: '09:00 AM - 11:00 AM (Morning)' },
@@ -65,21 +67,95 @@ const QuickBookingPanel = () => {
     return Object.keys(newErrors)?.length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e?.preventDefault();
     
-    if (validateForm()) {
-      setIsSubmitting(true);
-      
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+      const [startTime, endTime] = formData.timeSlot.split('-');
+
+      let expectedAttendees = 50;
+      let venue = 'Seminar Hall';
+      if (formData.facilities.seating500) {
+        expectedAttendees = 500;
+        venue = 'Main Auditorium';
+      } else if (formData.facilities.seating200) {
+        expectedAttendees = 200;
+        venue = 'Main Auditorium';
+      } else if (formData.facilities.seating100) {
+        expectedAttendees = 100;
+        venue = 'Seminar Hall';
+      }
+
+      const technicalEquipment = {
+        projector: formData.facilities.projector,
+        microphone: formData.facilities.microphone,
+        soundSystem: false,
+        whiteboard: false,
+        videoConferencing: false,
+        wifi: false
+      };
+
+      const response = await authFetch('/faculty/bookings', {
+        method: 'POST',
+        body: JSON.stringify({
+          eventType: 'general',
+          eventTitle: formData.eventPurpose.substring(0, 50).trim(),
+          venue: venue,
+          eventStartDate: formData.eventDate,
+          eventEndDate: formData.eventDate,
+          startTime: startTime,
+          endTime: endTime,
+          expectedAttendees: expectedAttendees,
+          eventPurpose: formData.eventPurpose,
+          seatingArrangement: 'theater',
+          seatingCapacity: expectedAttendees,
+          stageRequirement: null,
+          technicalEquipment: technicalEquipment,
+          additionalServices: {},
+          specialRequirements: null,
+          priority: 'normal',
+          specialInstructions: null
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrors({ general: data.message || 'Failed to submit booking request' });
+        return;
+      }
+
+      setSubmitSuccess(true);
+
       setTimeout(() => {
-        setIsSubmitting(false);
-        navigate('/booking-request-form', { 
-          state: { 
-            quickBookingData: formData,
-            message: 'Request successfully submitted!'
-          } 
+        setFormData({
+          eventDate: '',
+          timeSlot: '',
+          eventPurpose: '',
+          facilities: {
+            projector: false,
+            microphone: false,
+            seating100: false,
+            seating200: false,
+            seating500: false
+          }
         });
-      }, 1500);
+        setSubmitSuccess(false);
+        if (onBookingSubmitted) {
+          onBookingSubmitted();
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error('Quick booking error:', error);
+      setErrors({ general: 'Network error. Please check if the server is running.' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -136,6 +212,29 @@ const QuickBookingPanel = () => {
       </div>
       <div className={`${isExpanded ? 'block' : 'hidden lg:block'}`}>
         <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4 md:space-y-6">
+
+          {submitSuccess && (
+            <div className="p-3 rounded-lg bg-success/10 border border-success/30">
+              <div className="flex items-center gap-2">
+                <Icon name="CheckCircle" size={18} className="text-success" />
+                <p className="text-sm font-medium text-success">
+                  Booking request submitted successfully!
+                </p>
+              </div>
+            </div>
+          )}
+
+          {errors?.general && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+              <div className="flex items-center gap-2">
+                <Icon name="AlertCircle" size={18} className="text-destructive" />
+                <p className="text-sm font-medium text-destructive">
+                  {errors.general}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <Input
               type="date"
@@ -255,8 +354,9 @@ const QuickBookingPanel = () => {
               iconPosition="right"
               fullWidth
               className="sm:flex-1"
+              disabled={isSubmitting || submitSuccess}
             >
-              {isSubmitting ? 'Submiting...' : 'Submit Request'}
+              {isSubmitting ? 'Submiting...' : submitSuccess ? 'Submitted!' : 'Submit Request'}
             </Button>
             <Button
               type="button"

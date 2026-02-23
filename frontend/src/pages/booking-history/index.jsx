@@ -10,12 +10,16 @@ import BookingTable from './components/BookingTable';
 import BookingCard from './components/BookingCard';
 import AnalyticsChart from './components/AnalyticsChart';
 import ExportModal from './components/ExportModal';
+import { authFetch, getUser, isManager } from '../../utils/auth';
 
 const BookingHistory = () => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('table');
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
@@ -26,179 +30,126 @@ const BookingHistory = () => {
     submissionTo: ''
   });
 
-  const mockBookings = [
-    {
-      requestId: "REQ-2026-001",
-      eventDate: "2026-02-15",
-      submissionDate: "2026-01-10",
-      eventPurpose: "Annual Technical Symposium - TechFest 2026",
-      auditorium: "Main Auditorium",
-      startTime: "09:00",
-      endTime: "17:00",
-      status: "approved",
-      facultyName: "Prof. Priya Sharma",
-      department: "Computer Science",
-      attendees: 500,
-      duration: "8 hours",
-      facilities: ["Projector", "Sound System", "Stage Lighting", "AC", "WiFi"],
-      remarks: "Approved with all requested facilities. Please coordinate with technical team for setup."
-    },
-    {
-      requestId: "REQ-2026-002",
-      eventDate: "2026-02-20",
-      submissionDate: "2026-01-12",
-      eventPurpose: "Guest Lecture on Artificial Intelligence and Machine Learning",
-      auditorium: "Seminar Hall",
-      startTime: "14:00",
-      endTime: "16:00",
-      status: "approved",
-      facultyName: "Dr. Rajesh Kumar",
-      department: "Information Technology",
-      attendees: 150,
-      duration: "2 hours",
-      facilities: ["Projector", "Microphone", "AC"],
-      remarks: "Confirmed. Guest speaker arrangements completed."
-    },
-    {
-      requestId: "REQ-2026-003",
-      eventDate: "2026-02-18",
-      submissionDate: "2026-01-15",
-      eventPurpose: "Department Cultural Event - Freshers Welcome",
-      auditorium: "Main Auditorium",
-      startTime: "10:00",
-      endTime: "16:00",
-      status: "rejected",
-      facultyName: "Prof. Anjali Verma",
-      department: "Electronics",
-      attendees: 400,
-      duration: "6 hours",
-      facilities: ["Sound System", "Stage Lighting", "Decorations"],
-      remarks: "Rejected due to conflict with already scheduled technical symposium. Please choose alternative date."
-    },
-    {
-      requestId: "REQ-2026-004",
-      eventDate: "2026-03-05",
-      submissionDate: "2026-01-20",
-      eventPurpose: "Workshop on Data Science and Analytics",
-      auditorium: "Main Auditorium",
-      startTime: "10:00",
-      endTime: "13:00",
-      status: "pending",
-      facultyName: "Dr. Suresh Patel",
-      department: "Computer Science",
-      attendees: 80,
-      duration: "3 hours",
-      facilities: ["Projector", "Whiteboard", "AC", "WiFi"],
-      remarks: null
-    },
-    {
-      requestId: "REQ-2026-005",
-      eventDate: "2026-03-10",
-      submissionDate: "2026-01-22",
-      eventPurpose: "Industry Expert Talk on Cloud Computing",
-      auditorium: "Seminar Hall",
-      startTime: "15:00",
-      endTime: "17:00",
-      status: "approved",
-      facultyName: "Prof. Meera Desai",
-      department: "Information Technology",
-      attendees: 120,
-      duration: "2 hours",
-      facilities: ["Projector", "Sound System", "AC"],
-      remarks: "Approved. Industry expert confirmed attendance."
-    },
-    {
-      requestId: "REQ-2025-156",
-      eventDate: "2025-12-20",
-      submissionDate: "2025-11-15",
-      eventPurpose: "Annual Day Celebration 2025",
-      auditorium: "Main Auditorium",
-      startTime: "09:00",
-      endTime: "18:00",
-      status: "completed",
-      facultyName: "Dr. Vikram Singh",
-      department: "Administration",
-      attendees: 600,
-      duration: "9 hours",
-      facilities: ["Projector", "Sound System", "Stage Lighting", "AC", "Decorations"],
-      remarks: "Successfully completed. Excellent event management."
-    },
-    {
-      requestId: "REQ-2025-157",
-      eventDate: "2025-12-15",
-      submissionDate: "2025-11-20",
-      eventPurpose: "Placement Drive - Tech Companies",
-      auditorium: "Seminar Hall",
-      startTime: "09:00",
-      endTime: "17:00",
-      status: "completed",
-      facultyName: "Prof. Kavita Joshi",
-      department: "Training & Placement",
-      attendees: 200,
-      duration: "8 hours",
-      facilities: ["Projector", "AC", "WiFi", "Tables & Chairs"],
-      remarks: "Completed successfully. 45 students placed."
-    },
-    {
-      requestId: "REQ-2026-006",
-      eventDate: "2026-03-15",
-      submissionDate: "2026-01-25",
-      eventPurpose: "Research Paper Presentation Competition",
-      auditorium: "Main Auditorium",
-      startTime: "10:00",
-      endTime: "15:00",
-      status: "pending",
-      facultyName: "Dr. Amit Gupta",
-      department: "Research & Development",
-      attendees: 100,
-      duration: "5 hours",
-      facilities: ["Projector", "Microphone", "AC", "WiFi"],
-      remarks: null
-    },
-    {
-      requestId: "REQ-2025-158",
-      eventDate: "2025-11-10",
-      submissionDate: "2025-10-15",
-      eventPurpose: "Alumni Meet 2025",
-      auditorium: "Main Auditorium",
-      startTime: "11:00",
-      endTime: "16:00",
-      status: "cancelled",
-      facultyName: "Prof. Neha Kapoor",
-      department: "Alumni Relations",
-      attendees: 300,
-      duration: "5 hours",
-      facilities: ["Sound System", "Projector", "AC", "Catering"],
-      remarks: "Cancelled due to low alumni response. Rescheduled to next semester."
-    },
-    {
-      requestId: "REQ-2026-007",
-      eventDate: "2026-03-20",
-      submissionDate: "2026-01-28",
-      eventPurpose: "Hackathon 2026 - Code Sprint",
-      auditorium: "Seminar Hall",
-      startTime: "08:00",
-      endTime: "20:00",
-      status: "approved",
-      facultyName: "Dr. Sanjay Mehta",
-      department: "Computer Science",
-      attendees: 150,
-      duration: "12 hours",
-      facilities: ["Projector", "WiFi", "AC", "Power Backup", "Refreshments"],
-      remarks: "Approved for full day event. Technical support team assigned."
-    }
-  ];
+  const user = getUser();
+  const userIsManager = isManager();
 
-  const [filteredBookings, setFilteredBookings] = useState(mockBookings);
+  // Fetch bookings from backend
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Manager sees all bookings, faculty sees only their own
+      const endpoint = userIsManager
+        ? '/manager/bookings'
+        : '/faculty/bookings';
+
+      const response = await authFetch(endpoint);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch bookings');
+      }
+
+      const data = await response.json();
+
+      // Transform backend response to match component's expected format
+      const transformed = data.map((booking, index) => ({
+        requestId: `REQ-${new Date(booking.createdAt).getFullYear()}-${String(booking.id).padStart(3, '0')}`,
+        id: booking.id,
+        eventDate: booking.eventStartDate,
+        eventEndDate: booking.eventEndDate,
+        submissionDate: booking.createdAt ? booking.createdAt.split('T')[0] : '',
+        eventPurpose: booking.eventTitle + (booking.eventPurpose ? ' - ' + booking.eventPurpose : ''),
+        eventTitle: booking.eventTitle,
+        eventType: booking.eventType,
+        auditorium: booking.venue,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        status: booking.status.toLowerCase(),
+        facultyName: booking.facultyName,
+        facultyEmail: booking.facultyEmail,
+        attendees: booking.expectedAttendees,
+        duration: calculateDuration(booking.startTime, booking.endTime),
+        facilities: formatFacilities(booking.technicalEquipment, booking.additionalServices),
+        remarks: booking.managerRemarks,
+        reviewedByName: booking.reviewedByName,
+        reviewedAt: booking.reviewedAt,
+        priority: booking.priority,
+        seatingArrangement: booking.seatingArrangement,
+        seatingCapacity: booking.seatingCapacity,
+        specialRequirements: booking.specialRequirements,
+        specialInstructions: booking.specialInstructions
+      }));
+
+      setBookings(transformed);
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+      setError('Failed to load bookings. Please check if the server is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate duration string from start and end time
+  const calculateDuration = (startTime, endTime) => {
+    if (!startTime || !endTime) return '';
+    const [sh, sm] = startTime.split(':').map(Number);
+    const [eh, em] = endTime.split(':').map(Number);
+    const totalMinutes = (eh * 60 + em) - (sh * 60 + sm);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (minutes === 0) return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    return `${hours}h ${minutes}m`;
+  };
+
+  // Convert backend equipment/services maps into a flat array of names
+  const formatFacilities = (technicalEquipment, additionalServices) => {
+    const facilities = [];
+
+    if (technicalEquipment) {
+      Object.entries(technicalEquipment).forEach(([key, value]) => {
+        if (value) {
+          // Convert camelCase to Title Case: "soundSystem" → "Sound System"
+          const formatted = key
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase())
+            .trim();
+          facilities.push(formatted);
+        }
+      });
+    }
+
+    if (additionalServices) {
+      Object.entries(additionalServices).forEach(([key, value]) => {
+        if (value) {
+          const formatted = key
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase())
+            .trim();
+          facilities.push(formatted);
+        }
+      });
+    }
+
+    return facilities;
+  };
+
+  // Apply frontend filters
+  const [filteredBookings, setFilteredBookings] = useState([]);
 
   useEffect(() => {
-    let filtered = [...mockBookings];
+    let filtered = [...bookings];
 
     if (filters?.search) {
       const searchLower = filters?.search?.toLowerCase();
       filtered = filtered?.filter(booking =>
         booking?.facultyName?.toLowerCase()?.includes(searchLower) ||
         booking?.eventPurpose?.toLowerCase()?.includes(searchLower) ||
+        booking?.eventTitle?.toLowerCase()?.includes(searchLower) ||
         booking?.requestId?.toLowerCase()?.includes(searchLower)
       );
     }
@@ -208,37 +159,37 @@ const BookingHistory = () => {
     }
 
     if (filters?.auditorium !== 'all') {
-      filtered = filtered?.filter(booking => 
+      filtered = filtered?.filter(booking =>
         booking?.auditorium?.toLowerCase()?.replace(/\s+/g, '-') === filters?.auditorium
       );
     }
 
     if (filters?.dateFrom) {
-      filtered = filtered?.filter(booking => 
+      filtered = filtered?.filter(booking =>
         new Date(booking.eventDate) >= new Date(filters.dateFrom)
       );
     }
 
     if (filters?.dateTo) {
-      filtered = filtered?.filter(booking => 
+      filtered = filtered?.filter(booking =>
         new Date(booking.eventDate) <= new Date(filters.dateTo)
       );
     }
 
     if (filters?.submissionFrom) {
-      filtered = filtered?.filter(booking => 
+      filtered = filtered?.filter(booking =>
         new Date(booking.submissionDate) >= new Date(filters.submissionFrom)
       );
     }
 
     if (filters?.submissionTo) {
-      filtered = filtered?.filter(booking => 
+      filtered = filtered?.filter(booking =>
         new Date(booking.submissionDate) <= new Date(filters.submissionTo)
       );
     }
 
     setFilteredBookings(filtered);
-  }, [filters]);
+  }, [filters, bookings]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -270,7 +221,7 @@ const BookingHistory = () => {
         <title>Booking History - AuditoriumBooking</title>
         <meta name="description" content="View and manage your auditorium booking history with advanced filtering and analytics" />
       </Helmet>
-      <MainLayout userRole="faculty">
+      <MainLayout userRole={userIsManager ? 'manager' : 'faculty'}>
         <div className="space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
@@ -279,11 +230,25 @@ const BookingHistory = () => {
                 Booking History
               </h1>
               <p className="text-sm md:text-base text-muted-foreground">
-                Track and analyze your auditorium booking requests
+                {userIsManager
+                  ? 'View and manage all auditorium booking requests'
+                  : 'Track and analyze your auditorium booking requests'
+                }
               </p>
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Refresh button */}
+              <Button
+                variant="outline"
+                size="sm"
+                iconName="RefreshCw"
+                iconPosition="left"
+                onClick={fetchBookings}
+                disabled={loading}
+              >
+                Refresh
+              </Button>
               <Button
                 variant={showAnalytics ? 'default' : 'outline'}
                 size="sm"
@@ -297,7 +262,7 @@ const BookingHistory = () => {
                 <button
                   onClick={() => setViewMode('table')}
                   className={`px-3 py-2 rounded-md transition-all duration-250 ${
-                    viewMode === 'table' ?'bg-background shadow-sm text-foreground' :'text-muted-foreground hover:text-foreground'
+                    viewMode === 'table' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
                   aria-label="Table view"
                 >
@@ -306,7 +271,7 @@ const BookingHistory = () => {
                 <button
                   onClick={() => setViewMode('card')}
                   className={`px-3 py-2 rounded-md transition-all duration-250 ${
-                    viewMode === 'card' ?'bg-background shadow-sm text-foreground' :'text-muted-foreground hover:text-foreground'
+                    viewMode === 'card' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
                   aria-label="Card view"
                 >
@@ -328,25 +293,80 @@ const BookingHistory = () => {
             <AnalyticsChart bookingData={filteredBookings} />
           )}
 
-          {filteredBookings?.length === 0 ? (
+          {/* Loading state */}
+          {loading && (
+            <div className="bg-card rounded-xl border border-border p-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                <svg className="animate-spin h-8 w-8 text-primary" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Loading bookings...</h3>
+              <p className="text-sm text-muted-foreground">Fetching data from server</p>
+            </div>
+          )}
+
+          {/* Error state */}
+          {!loading && error && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center mx-auto mb-4">
+                <Icon name="AlertCircle" size={32} className="text-destructive" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load bookings</h3>
+              <p className="text-sm text-muted-foreground mb-6">{error}</p>
+              <Button
+                variant="outline"
+                iconName="RefreshCw"
+                iconPosition="left"
+                onClick={fetchBookings}
+              >
+                Try Again
+              </Button>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!loading && !error && filteredBookings?.length === 0 && (
             <div className="bg-card rounded-xl border border-border p-12 text-center">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                 <Icon name="Search" size={32} className="text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">No bookings found</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {bookings.length === 0 ? 'No bookings yet' : 'No bookings found'}
+              </h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Try adjusting your filters or search criteria
+                {bookings.length === 0
+                  ? (userIsManager
+                    ? 'No booking requests have been submitted yet.'
+                    : 'You haven\'t submitted any booking requests yet.')
+                  : 'Try adjusting your filters or search criteria'
+                }
               </p>
-              <Button
-                variant="outline"
-                iconName="RotateCcw"
-                iconPosition="left"
-                onClick={handleResetFilters}
-              >
-                Reset Filters
-              </Button>
+              {bookings.length === 0 && !userIsManager ? (
+                <Button
+                  variant="default"
+                  iconName="Plus"
+                  iconPosition="left"
+                  onClick={() => navigate('/booking-request')}
+                >
+                  New Booking Request
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  iconName="RotateCcw"
+                  iconPosition="left"
+                  onClick={handleResetFilters}
+                >
+                  Reset Filters
+                </Button>
+              )}
             </div>
-          ) : (
+          )}
+
+          {/* Bookings list */}
+          {!loading && !error && filteredBookings?.length > 0 && (
             <>
               {viewMode === 'table' ? (
                 <BookingTable

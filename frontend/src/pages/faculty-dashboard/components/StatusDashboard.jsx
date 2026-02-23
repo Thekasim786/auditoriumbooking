@@ -3,55 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import StatusCard from './StatusCard';
+import { authFetch } from '../../../utils/auth';
 
-const StatusDashboard = () => {
+const StatusDashboard = ({ bookings = [], loading = false, onRefresh }) => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState('all');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
 
-  const recentBookings = [
-    {
-      requestId: 'REQ-2026-001',
-      eventTitle: 'Annual Technical Symposium 2026',
-      eventDate: '2026-02-15',
-      timeSlot: '09:00 AM - 01:00 PM',
-      submittedDate: '2026-01-10',
-      status: 'approved',
-      auditoriumName: 'Main Auditorium (500 capacity)',
-      managerNote: 'Approved. All facilities are available.'
-    },
-    {
-      requestId: 'REQ-2026-002',
-      eventTitle: 'Guest Lecture on AI & Machine Learning',
-      eventDate: '2026-01-25',
-      timeSlot: '02:00 PM - 04:00 PM',
-      submittedDate: '2026-01-11',
-      status: 'pending',
-      auditoriumName: null,
-      managerNote: null
-    },
-    {
-      requestId: 'REQ-2026-003',
-      eventTitle: 'Department Cultural Event',
-      eventDate: '2026-01-20',
-      timeSlot: '06:00 PM - 08:00 PM',
-      submittedDate: '2026-01-09',
-      status: 'rejected',
-      auditoriumName: null,
-      managerNote: 'Sorry, there is already a booking on that date. Please choose another date.'
-    },
-    {
-      requestId: 'REQ-2026-004',
-      eventTitle: 'Workshop on Research Methodology',
-      eventDate: '2026-02-05',
-      timeSlot: '11:00 AM - 01:00 PM',
-      submittedDate: '2026-01-12',
-      status: 'pending',
-      auditoriumName: null,
-      managerNote: null
-    }
-  ];
+  const recentBookings = bookings.map((booking) => ({
+    requestId: booking.requestId,
+    id: booking.id,
+    eventTitle: booking.eventTitle,
+    eventDate: booking.eventDate,
+    timeSlot: booking.startTime && booking.endTime
+      ? `${formatTime(booking.startTime)} - ${formatTime(booking.endTime)}`
+      : '',
+    submittedDate: booking.submissionDate,
+    status: booking.status,
+    auditoriumName: booking.auditorium,
+    managerNote: booking.remarks,
+    facilities: booking.facilities,
+    priority: booking.priority
+  }));
 
   const filterOptions = [
     { value: 'all', label: 'All Requests', icon: 'List', count: recentBookings?.length },
@@ -74,12 +50,38 @@ const StatusDashboard = () => {
 
   const handleCancelRequest = (booking) => {
     setSelectedBooking(booking);
+    setCancelError(null);
     setShowCancelModal(true);
   };
 
-  const confirmCancel = () => {
-    setShowCancelModal(false);
-    setSelectedBooking(null);
+  const confirmCancel = async () => {
+    if (!selectedBooking?.id) return;
+
+    setIsCancelling(true);
+    setCancelError(null);
+
+    try {
+      const response = await authFetch(`/faculty/bookings/${selectedBooking.id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to cancel booking');
+      }
+
+      setShowCancelModal(false);
+      setSelectedBooking(null);
+
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (err) {
+      console.error('Cancel error:', err);
+      setCancelError(err.message || 'Failed to cancel booking. Please try again.');
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   return (
@@ -138,7 +140,22 @@ const StatusDashboard = () => {
         </div>
       </div>
       <div className="p-4 md:p-6">
-        {filteredBookings?.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+              <svg className="animate-spin h-8 w-8 text-primary" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Loading bookings...
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Fetching your booking requests
+            </p>
+          </div>
+        ) : filteredBookings?.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
               <Icon name="Inbox" size={32} className="text-muted-foreground" />
@@ -147,7 +164,9 @@ const StatusDashboard = () => {
               No Requests Found
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
-              There are no booking requests in this category
+              {bookings.length === 0
+                ? 'Submit your first auditorium booking request'
+                : 'There are no booking requests in this category'}
             </p>
             <Button
               variant="default"
@@ -196,15 +215,27 @@ const StatusDashboard = () => {
                     </p>
                   </div>
                 )}
+                {cancelError && (
+                  <div className="mt-3 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                    <p className="text-sm text-destructive flex items-center gap-1">
+                      <Icon name="AlertCircle" size={14} />
+                      {cancelError}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 variant="outline"
                 size="default"
-                onClick={() => setShowCancelModal(false)}
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setCancelError(null);
+                }}
                 fullWidth
                 className="sm:flex-1"
+                disabled={isCancelling}
               >
                 Go Back
               </Button>
@@ -216,8 +247,9 @@ const StatusDashboard = () => {
                 onClick={confirmCancel}
                 fullWidth
                 className="sm:flex-1"
+                disabled={isCancelling}
               >
-                Yes, Cancel Request
+                {isCancelling ? 'Cancelling...' : 'Yes, Cancel Request'}
               </Button>
             </div>
           </div>
@@ -226,5 +258,13 @@ const StatusDashboard = () => {
     </div>
   );
 };
+
+function formatTime(timeStr) {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 || 12;
+  return `${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+}
 
 export default StatusDashboard;

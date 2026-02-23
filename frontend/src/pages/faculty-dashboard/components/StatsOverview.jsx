@@ -1,27 +1,31 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
 
-const StatsOverview = () => {
-  const stats = [
+const StatsOverview = ({ stats, loading }) => {
+  const total = stats?.total || 0;
+  const approved = stats?.approved || 0;
+  const successRate = total > 0 ? ((approved / total) * 100).toFixed(1) : '0.0';
+
+  const statCards = [
     {
       label: 'Total Requests',
-      value: '12',
-      change: '+3 this month',
+      value: total,
+      change: `${total} booking${total !== 1 ? 's' : ''} submitted`,
       icon: 'FileText',
       bgColor: 'bg-primary/10',
       iconColor: 'var(--color-primary)'
     },
     {
       label: 'Approved',
-      value: '8',
-      change: '66.7% success rate',
+      value: approved,
+      change: `${successRate}% success rate`,
       icon: 'CheckCircle',
       bgColor: 'bg-success/10',
       iconColor: 'var(--color-success)'
     },
     {
       label: 'Pending',
-      value: '2',
+      value: stats?.pending || 0,
       change: 'Awaiting review',
       icon: 'Clock',
       bgColor: 'bg-warning/10',
@@ -29,8 +33,8 @@ const StatsOverview = () => {
     },
     {
       label: 'Upcoming Events',
-      value: '3',
-      change: 'Next 30 days',
+      value: stats?.rejected || 0,
+      change: 'Rejected requests',
       icon: 'Calendar',
       bgColor: 'bg-secondary/10',
       iconColor: 'var(--color-secondary)'
@@ -39,7 +43,7 @@ const StatsOverview = () => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-      {stats?.map((stat, index) => (
+      {statCards?.map((stat, index) => (
         <div
           key={index}
           className="bg-card rounded-xl border border-border shadow-elevation-1 hover:shadow-elevation-2 transition-all duration-250 p-4 md:p-6"
@@ -53,11 +57,15 @@ const StatsOverview = () => {
             <p className="text-xs md:text-sm text-muted-foreground mb-1">
               {stat?.label}
             </p>
-            <p className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-              {stat?.value}
-            </p>
+            {loading ? (
+              <div className="h-9 w-16 bg-muted animate-pulse rounded mb-2"></div>
+            ) : (
+              <p className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                {stat?.value}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
-              {stat?.change}
+              {loading ? '' : stat?.change}
             </p>
           </div>
         </div>

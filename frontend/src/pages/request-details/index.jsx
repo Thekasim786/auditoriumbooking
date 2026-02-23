@@ -1,225 +1,217 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from '../../components/navigation/MainLayout';
 import Breadcrumbs from '../../components/navigation/Breadcrumbs';
 import RequestHeader from './components/RequestHeader';
 import FacultyInformation from './components/FacultyInformation';
 import FacilityRequirements from './components/FacilityRequirements';
 import RequestTimeline from './components/RequestTimeline';
+import { authFetch, getUser, isManager } from '../../utils/auth';
 
 const RequestDetails = () => {
   const navigate = useNavigate();
-  const [userRole] = useState('manager');
+  const location = useLocation();
+  const user = getUser();
+  const userIsManager = isManager();
+  const userRole = userIsManager ? 'manager' : 'faculty';
 
-  const mockRequest = {
-    id: "REQ-2026-001",
-    status: "pending",
-    submittedDate: "10/01/2026",
-    submittedTime: "10:30 AM"
+  // Get booking from navigation state (passed from StatusDashboard or BookingHistory)
+  const bookingFromState = location?.state?.booking || null;
+
+  const [loading, setLoading] = useState(!bookingFromState);
+  const [booking, setBooking] = useState(bookingFromState);
+
+  // Build request object for RequestHeader
+  const request = booking ? {
+    id: booking.requestId || `REQ-${booking.id}`,
+    status: booking.status || 'pending',
+    submittedDate: booking.submittedDate || booking.submissionDate || '',
+    submittedTime: booking.reviewedAt ? new Date(booking.reviewedAt).toLocaleTimeString() : ''
+  } : {};
+
+  // Build faculty object for FacultyInformation
+  const faculty = booking ? {
+    name: booking.facultyName || user?.fullName || 'Faculty Member',
+    designation: '',
+    department: '',
+    email: booking.facultyEmail || user?.email || '',
+    phone: '',
+    employeeId: '',
+    profileImage: '',
+    profileImageAlt: ''
+  } : {};
+
+  // Build event object (used by child components if needed)
+  const event = booking ? {
+    title: booking.eventTitle || '',
+    date: booking.eventDate || '',
+    timeSlot: booking.timeSlot || (booking.startTime && booking.endTime
+      ? `${booking.startTime} - ${booking.endTime}` : ''),
+    expectedAttendees: booking.attendees || booking.expectedAttendees || 0,
+    duration: booking.duration || '',
+    type: booking.eventType || '',
+    purpose: booking.eventPurpose || booking.eventPurpose || '',
+    specialRequirements: booking.specialRequirements || '',
+    specialInstructions: booking.specialInstructions || '',
+    venue: booking.auditorium || booking.venue || '',
+    priority: booking.priority || 'normal'
+  } : {};
+
+  // Build facilities array for FacilityRequirements
+  const buildFacilities = () => {
+    if (!booking) return [];
+
+    const facilities = [];
+
+    // If facilities is already an array (from StatusDashboard transform)
+    if (Array.isArray(booking.facilities)) {
+      return booking.facilities.map((name, index) => ({
+        type: name.toLowerCase().replace(/\s+/g, '-'),
+        name: name,
+        quantity: 1
+      }));
+    }
+
+    // If technicalEquipment is a map object (from direct API response)
+    if (booking.technicalEquipment && typeof booking.technicalEquipment === 'object') {
+      Object.entries(booking.technicalEquipment).forEach(([key, value]) => {
+        if (value) {
+          const name = key
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, s => s.toUpperCase())
+            .trim();
+          facilities.push({ type: key, name: name, quantity: 1 });
+        }
+      });
+    }
+
+    if (booking.additionalServices && typeof booking.additionalServices === 'object') {
+      Object.entries(booking.additionalServices).forEach(([key, value]) => {
+        if (value) {
+          const name = key
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, s => s.toUpperCase())
+            .trim();
+          facilities.push({ type: key, name: name, quantity: 1 });
+        }
+      });
+    }
+
+    return facilities;
   };
 
-  const mockFaculty = {
-    name: "Prof. Priya Sharma",
-    designation: "Associate Professor",
-    department: "Computer Science & Engineering",
-    email: "priya.sharma@university.edu.in",
-    phone: "+91 98765 43210",
-    employeeId: "EMP-CS-2019-045",
-    profileImage: "https://img.rocket.new/generatedImages/rocket_gen_img_14e2c177f-1763300101315.png",
-    profileImageAlt: "Professional headshot of Indian woman with shoulder-length black hair wearing blue formal blazer and white shirt, smiling warmly at camera in office setting"
+  // Build timeline
+  const buildTimeline = () => {
+    if (!booking) return [];
+
+    const timeline = [];
+
+    timeline.push({
+      status: 'submitted',
+      title: 'Request Submitted',
+      description: 'Booking request submitted by faculty member',
+      timestamp: booking.submittedDate || booking.submissionDate || booking.createdAt || '',
+      performedBy: booking.facultyName || user?.fullName || 'Faculty'
+    });
+
+    if (booking.status === 'pending') {
+      timeline.push({
+        status: 'under-review',
+        title: 'Awaiting Review',
+        description: 'Request is pending manager review',
+        timestamp: '',
+        performedBy: 'Auditorium Manager'
+      });
+    }
+
+    if (booking.status === 'approved') {
+      timeline.push({
+        status: 'approved',
+        title: 'Request Approved',
+        description: booking.remarks || 'Booking request has been approved',
+        timestamp: booking.reviewedAt || '',
+        performedBy: booking.reviewedByName || 'Auditorium Manager'
+      });
+    }
+
+    if (booking.status === 'rejected') {
+      timeline.push({
+        status: 'rejected',
+        title: 'Request Rejected',
+        description: booking.remarks || 'Booking request has been rejected',
+        timestamp: booking.reviewedAt || '',
+        performedBy: booking.reviewedByName || 'Auditorium Manager'
+      });
+    }
+
+    return timeline;
   };
-
-  const mockEvent = {
-    title: "National Conference on Artificial Intelligence and Machine Learning 2026",
-    date: "25/02/2026",
-    timeSlot: "09:00 AM - 05:00 PM",
-    expectedAttendees: 350,
-    duration: "8 hours",
-    type: "Academic Conference",
-    purpose: `The National Conference on Artificial Intelligence and Machine Learning aims to bring together leading researchers, academicians, and industry professionals to discuss recent advancements and future directions in AI/ML technologies.\n\nKey Topics:\n• Deep Learning and Neural Networks\n• Natural Language Processing\n• Computer Vision Applications\n• AI Ethics and Responsible AI\n• Industry Applications and Case Studies\n\nThe conference will feature keynote speeches from renowned experts, technical paper presentations, panel discussions, and networking sessions.`,
-    specialRequirements: "High-speed internet connectivity required for live streaming. Separate green room needed for keynote speakers. Catering arrangements for 400 people including lunch and refreshments."
-  };
-
-  const mockFacilities = [
-  { type: "projector", name: "High-Resolution Projector", quantity: 2 },
-  { type: "microphone", name: "Wireless Microphones", quantity: 5 },
-  { type: "speakers", name: "Professional Sound System", quantity: 1 },
-  { type: "video-conferencing", name: "Video Conferencing Setup", quantity: 1 },
-  { type: "stage-lighting", name: "Stage Lighting System", quantity: 1 },
-  { type: "podium", name: "Speaker Podium", quantity: 2 },
-  { type: "air-conditioning", name: "Central Air Conditioning", quantity: 1 },
-  { type: "wifi", name: "High-Speed WiFi", quantity: 1 }];
-
-
-  const mockTimeline = [
-  {
-    status: "submitted",
-    title: "Request Submitted",
-    description: "Booking request submitted by faculty member",
-    timestamp: "10/01/2026, 10:30 AM",
-    performedBy: "Prof. Priya Sharma"
-  },
-  {
-    status: "under-review",
-    title: "Under Review",
-    description: "Request assigned to auditorium manager for review",
-    timestamp: "10/01/2026, 11:15 AM",
-    performedBy: "System Auto-Assignment",
-    notes: "Request automatically forwarded to Dr. Rajesh Kumar (Auditorium Manager) based on FCFS policy"
-  },
-  {
-    status: "under-review",
-    title: "Manager Viewing",
-    description: "Auditorium manager accessed request details",
-    timestamp: "10/01/2026, 02:45 PM",
-    performedBy: "Dr. Rajesh Kumar"
-  }];
-
-
-  const mockVenues = [
-  {
-    name: "Main Auditorium",
-    location: "Academic Block A, Ground Floor",
-    capacity: 500,
-    floor: "Ground Floor",
-    isAvailable: true,
-    availableFacilities: [
-    "High-Resolution Projector",
-    "Professional Sound System",
-    "Wireless Microphones",
-    "Video Conferencing",
-    "Stage Lighting",
-    "Central AC",
-    "High-Speed WiFi",
-    "Green Room"]
-
-  },
-  {
-    name: "Seminar Hall",
-    location: "Academic Block B, First Floor",
-    capacity: 200,
-    floor: "First Floor",
-    isAvailable: true,
-    availableFacilities: [
-    "Projector",
-    "Sound System",
-    "Microphones",
-    "Air Conditioning",
-    "WiFi"]
-
-  }];
-
-
-  const mockMessages = [
-  {
-    sender: "Dr. Rajesh Kumar",
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_12b9c2bb3-1763293370864.png",
-    avatarAlt: "Professional headshot of middle-aged Indian man with short gray hair wearing formal navy blue suit and red tie, confident expression in office environment",
-    content: "I have reviewed your request for the AI/ML conference. The Main Auditorium appears to be the best fit for your requirements. Could you please confirm if you need the green room facility?",
-    timestamp: "10/01/2026, 03:00 PM"
-  },
-  {
-    sender: "You",
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_14e2c177f-1763300101315.png",
-    avatarAlt: "Professional headshot of Indian woman with shoulder-length black hair wearing blue formal blazer and white shirt, smiling warmly at camera in office setting",
-    content: "Yes, we definitely need the green room as we have three keynote speakers who will need a private space before their sessions. Also, please confirm if live streaming equipment is available.",
-    timestamp: "10/01/2026, 03:15 PM"
-  },
-  {
-    sender: "Dr. Rajesh Kumar",
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_12b9c2bb3-1763293370864.png",
-    avatarAlt: "Professional headshot of middle-aged Indian man with short gray hair wearing formal navy blue suit and red tie, confident expression in office environment",
-    content: "The Main Auditorium has a dedicated green room. For live streaming, we have professional equipment available. I'll include this in the booking confirmation.",
-    timestamp: "10/01/2026, 03:30 PM"
-  }];
-
-
-  const mockDocuments = [
-  {
-    name: "Conference_Proposal_2026.pdf",
-    type: "pdf",
-    size: 2457600,
-    uploadedDate: "10/01/2026",
-    description: "Detailed conference proposal including agenda, speaker list, and budget breakdown"
-  },
-  {
-    name: "Speaker_Profiles.docx",
-    type: "docx",
-    size: 1048576,
-    uploadedDate: "10/01/2026",
-    description: "Biographical information and credentials of all keynote speakers and panelists"
-  },
-  {
-    name: "Sponsorship_Letters.pdf",
-    type: "pdf",
-    size: 3145728,
-    uploadedDate: "10/01/2026",
-    description: "Letters of sponsorship from industry partners and funding organizations"
-  }];
-
-
-  const mockAuditLogs = [
-  {
-    timestamp: "10/01/2026, 10:30:15 AM",
-    action: "created",
-    user: "Prof. Priya Sharma",
-    userRole: "Faculty",
-    details: "Initial request created with event details and facility requirements"
-  },
-  {
-    timestamp: "10/01/2026, 10:32:45 AM",
-    action: "updated",
-    user: "Prof. Priya Sharma",
-    userRole: "Faculty",
-    details: "Added document attachments: Conference_Proposal_2026.pdf"
-  },
-  {
-    timestamp: "10/01/2026, 11:15:30 AM",
-    action: "viewed",
-    user: "System",
-    userRole: "Automated",
-    details: "Request auto-assigned to Dr. Rajesh Kumar based on FCFS policy"
-  },
-  {
-    timestamp: "10/01/2026, 02:45:20 PM",
-    action: "viewed",
-    user: "Dr. Rajesh Kumar",
-    userRole: "Manager",
-    details: "Manager accessed request details for review"
-  },
-  {
-    timestamp: "10/01/2026, 03:00:10 PM",
-    action: "commented",
-    user: "Dr. Rajesh Kumar",
-    userRole: "Manager",
-    details: "Manager posted comment requesting green room confirmation"
-  },
-  {
-    timestamp: "10/01/2026, 03:15:45 PM",
-    action: "commented",
-    user: "Prof. Priya Sharma",
-    userRole: "Faculty",
-    details: "Faculty responded confirming green room requirement"
-  },
-  {
-    timestamp: "12/01/2026, 06:49:00 AM",
-    action: "viewed",
-    user: "Dr. Rajesh Kumar",
-    userRole: "Manager",
-    details: "Manager reviewing request for final approval decision"
-  }];
-
 
   const handleBack = () => {
-    navigate('/manager-dashboard');
+    if (userIsManager) {
+      navigate('/manager/dashboard');
+    } else {
+      navigate('/faculty/dashboard');
+    }
   };
 
-  const handleApprove = (requestId, venue, notes) => {
-    console.log('Approving request:', requestId, 'Venue:', venue, 'Notes:', notes);
+  const handleApprove = async (requestId, venue, notes) => {
+    try {
+      const bookingId = booking?.id;
+      if (!bookingId) return;
+
+      const response = await authFetch('/manager/bookings/review', {
+        method: 'POST',
+        body: JSON.stringify({
+          bookingId: bookingId,
+          action: 'APPROVED',
+          remarks: notes || `Approved. Venue: ${venue || booking.auditorium}`
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || 'Failed to approve booking');
+        return;
+      }
+
+      // Update local state
+      setBooking(prev => ({ ...prev, status: 'approved', remarks: notes }));
+      alert('Booking approved successfully!');
+    } catch (err) {
+      console.error('Approve error:', err);
+      alert('Failed to approve booking. Please try again.');
+    }
   };
 
-  const handleReject = (requestId, reason) => {
-    console.log('Rejecting request:', requestId, 'Reason:', reason);
+  const handleReject = async (requestId, reason) => {
+    try {
+      const bookingId = booking?.id;
+      if (!bookingId) return;
+
+      const response = await authFetch('/manager/bookings/review', {
+        method: 'POST',
+        body: JSON.stringify({
+          bookingId: bookingId,
+          action: 'REJECTED',
+          remarks: reason || 'Rejected by manager'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || 'Failed to reject booking');
+        return;
+      }
+
+      setBooking(prev => ({ ...prev, status: 'rejected', remarks: reason }));
+      alert('Booking rejected.');
+    } catch (err) {
+      console.error('Reject error:', err);
+      alert('Failed to reject booking. Please try again.');
+    }
   };
 
   const handleRequestModification = (requestId, changes) => {
@@ -230,28 +222,137 @@ const RequestDetails = () => {
     console.log('Sending message:', message);
   };
 
+  if (loading) {
+    return (
+      <MainLayout userRole={userRole}>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <svg className="animate-spin h-10 w-10 text-primary mx-auto mb-4" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <p className="text-muted-foreground">Loading request details...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <MainLayout userRole={userRole}>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-lg font-semibold text-foreground mb-2">Request not found</p>
+            <p className="text-muted-foreground mb-4">The booking request could not be found.</p>
+            <button
+              onClick={handleBack}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout userRole={userRole}>
       <div className="space-y-6 md:space-y-8">
         <Breadcrumbs />
 
-        <RequestHeader request={mockRequest} onBack={handleBack} />
+        <RequestHeader
+          request={request}
+          onBack={handleBack}
+          onApprove={userIsManager ? handleApprove : undefined}
+          onReject={userIsManager ? handleReject : undefined}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           <div className="lg:col-span-2 space-y-6 md:space-y-8">
-            <FacultyInformation faculty={mockFaculty} />
-            <FacilityRequirements facilities={mockFacilities} />
+            <FacultyInformation faculty={faculty} />
+
+            {/* Event Details Card */}
+            <div className="bg-card rounded-xl border border-border shadow-elevation-1 p-4 md:p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Event Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Event Title</p>
+                  <p className="text-sm font-medium text-foreground">{event.title}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Event Type</p>
+                  <p className="text-sm font-medium text-foreground capitalize">{event.type || 'General'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Event Date</p>
+                  <p className="text-sm font-medium text-foreground">{event.date}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Time Slot</p>
+                  <p className="text-sm font-medium text-foreground">{event.timeSlot}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Venue</p>
+                  <p className="text-sm font-medium text-foreground">{event.venue || 'To be assigned'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Expected Attendees</p>
+                  <p className="text-sm font-medium text-foreground">{event.expectedAttendees}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Priority</p>
+                  <p className="text-sm font-medium text-foreground capitalize">{event.priority}</p>
+                </div>
+              </div>
+              {event.purpose && (
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground mb-1">Purpose</p>
+                  <p className="text-sm text-foreground whitespace-pre-line">{event.purpose}</p>
+                </div>
+              )}
+              {event.specialRequirements && (
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground mb-1">Special Requirements</p>
+                  <p className="text-sm text-foreground">{event.specialRequirements}</p>
+                </div>
+              )}
+              {event.specialInstructions && (
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground mb-1">Special Instructions</p>
+                  <p className="text-sm text-foreground">{event.specialInstructions}</p>
+                </div>
+              )}
+            </div>
+
+            <FacilityRequirements facilities={buildFacilities()} />
+
+            {/* Manager Remarks */}
+            {booking.remarks && (
+              <div className="bg-card rounded-xl border border-border shadow-elevation-1 p-4 md:p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-3">Manager Remarks</h3>
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-foreground">{booking.remarks}</p>
+                  {booking.reviewedByName && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      — {booking.reviewedByName}
+                      {booking.reviewedAt && ` • ${booking.reviewedAt}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-6 md:space-y-8">
-            <RequestTimeline timeline={mockTimeline} />
-
+            <RequestTimeline timeline={buildTimeline()} />
           </div>
         </div>
 
       </div>
-    </MainLayout>);
-
+    </MainLayout>
+  );
 };
 
 export default RequestDetails;

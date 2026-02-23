@@ -18,6 +18,7 @@ const Routes = () => {
       <ScrollToTop />
       <RouterRoutes>
         <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/manager/dashboard" element={<ManagerDashboard />} />
         <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
         <Route path="/booking-request-form" element={<BookingRequestForm />} />
