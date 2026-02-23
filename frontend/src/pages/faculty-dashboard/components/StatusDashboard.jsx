@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
@@ -6,63 +6,41 @@ import StatusCard from './StatusCard';
 
 const StatusDashboard = () => {
   const navigate = useNavigate();
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const recentBookings = [
-    {
-      requestId: 'REQ-2026-001',
-      eventTitle: 'Annual Technical Symposium 2026',
-      eventDate: '2026-02-15',
-      timeSlot: '09:00 AM - 01:00 PM',
-      submittedDate: '2026-01-10',
-      status: 'approved',
-      auditoriumName: 'Main Auditorium (500 capacity)',
-      managerNote: 'Approved. All facilities are available.'
-    },
-    {
-      requestId: 'REQ-2026-002',
-      eventTitle: 'Guest Lecture on AI & Machine Learning',
-      eventDate: '2026-01-25',
-      timeSlot: '02:00 PM - 04:00 PM',
-      submittedDate: '2026-01-11',
-      status: 'pending',
-      auditoriumName: null,
-      managerNote: null
-    },
-    {
-      requestId: 'REQ-2026-003',
-      eventTitle: 'Department Cultural Event',
-      eventDate: '2026-01-20',
-      timeSlot: '06:00 PM - 08:00 PM',
-      submittedDate: '2026-01-09',
-      status: 'rejected',
-      auditoriumName: null,
-      managerNote: 'Sorry, there is already a booking on that date. Please choose another date.'
-    },
-    {
-      requestId: 'REQ-2026-004',
-      eventTitle: 'Workshop on Research Methodology',
-      eventDate: '2026-02-05',
-      timeSlot: '11:00 AM - 01:00 PM',
-      submittedDate: '2026-01-12',
-      status: 'pending',
-      auditoriumName: null,
-      managerNote: null
+ const fetchBookings = () => {
+  const token =
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token");
+
+  const user =
+    JSON.parse(localStorage.getItem("user")) ||
+    JSON.parse(sessionStorage.getItem("user"));
+
+  const endpoint =
+    user.role === "ROLE_MANAGER"
+      ? "http://localhost:8080/api/bookings/all-bookings"
+      : "http://localhost:8080/api/bookings/my-bookings";
+
+  fetch(endpoint, {
+    headers: {
+      Authorization: "Bearer " + token
     }
-  ];
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to fetch bookings");
+      return res.json();
+    })
+    .then(data => setBookings(data))
+    .catch(err => console.error(err))
+    .finally(() => setLoading(false));
+};
 
-  const filterOptions = [
-    { value: 'all', label: 'All Requests', icon: 'List', count: recentBookings?.length },
-    { value: 'pending', label: 'Pending', icon: 'Clock', count: recentBookings?.filter(b => b?.status === 'pending')?.length },
-    { value: 'approved', label: 'Approved', icon: 'CheckCircle', count: recentBookings?.filter(b => b?.status === 'approved')?.length },
-    { value: 'rejected', label: 'Rejected', icon: 'XCircle', count: recentBookings?.filter(b => b?.status === 'rejected')?.length }
-  ];
-
-  const filteredBookings = activeFilter === 'all' 
-    ? recentBookings 
-    : recentBookings?.filter(booking => booking?.status === activeFilter);
+useEffect(() => {
+  fetchBookings();
+}, []);
 
   const handleViewDetails = (booking) => {
     navigate('/request-details', { state: { booking } });
@@ -72,15 +50,33 @@ const StatusDashboard = () => {
     navigate('/booking-request-form', { state: { modifyBooking: booking } });
   };
 
-  const handleCancelRequest = (booking) => {
-    setSelectedBooking(booking);
-    setShowCancelModal(true);
+  const handleCancel = (id) => {
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
+
+    fetch(`http://localhost:8080/api/bookings/cancel/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: "Bearer " + token
+      }
+    })
+      .then(res => {
+  if (!res.ok) throw new Error("Cancel failed");
+  fetchBookings();   
+})
+      .catch(err => {
+        console.error("Cancel error:", err);
+      });
   };
 
-  const confirmCancel = () => {
-    setShowCancelModal(false);
-    setSelectedBooking(null);
-  };
+  if (loading) {
+    return <div className="p-6 text-muted-foreground">Loading bookings...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-destructive">{error}</div>;
+  }
 
   return (
     <div className="bg-card rounded-xl border border-border shadow-elevation-2">
@@ -99,6 +95,7 @@ const StatusDashboard = () => {
               </p>
             </div>
           </div>
+
           <Button
             variant="outline"
             size="default"
@@ -111,34 +108,9 @@ const StatusDashboard = () => {
           </Button>
         </div>
       </div>
-      <div className="p-4 md:p-6 border-b border-border">
-        <div className="flex flex-wrap gap-2">
-          {filterOptions?.map((filter) => (
-            <button
-              key={filter?.value}
-              onClick={() => setActiveFilter(filter?.value)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-250 ${
-                activeFilter === filter?.value
-                  ? 'bg-primary text-primary-foreground shadow-elevation-1'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-            >
-              <Icon name={filter?.icon} size={16} />
-              <span className="hidden sm:inline">{filter?.label}</span>
-              <span className="sm:hidden">{filter?.label}</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                activeFilter === filter?.value
-                  ? 'bg-primary-foreground/20 text-primary-foreground'
-                  : 'bg-background text-foreground'
-              }`}>
-                {filter?.count}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
+
       <div className="p-4 md:p-6">
-        {filteredBookings?.length === 0 ? (
+        {bookings.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
               <Icon name="Inbox" size={32} className="text-muted-foreground" />
@@ -147,7 +119,7 @@ const StatusDashboard = () => {
               No Requests Found
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
-              There are no booking requests in this category
+              There are no booking requests yet.
             </p>
             <Button
               variant="default"
@@ -160,69 +132,18 @@ const StatusDashboard = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            {filteredBookings?.map((booking) => (
+            {bookings.map((booking) => (
               <StatusCard
-                key={booking?.requestId}
+                key={booking.id}
                 booking={booking}
                 onViewDetails={handleViewDetails}
-                onCancel={handleCancelRequest}
                 onModify={handleModify}
+                onCancel={() => handleCancel(booking.id)}
               />
             ))}
           </div>
         )}
       </div>
-      {showCancelModal && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-xl border border-border shadow-elevation-4 max-w-md w-full p-6">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
-                <Icon name="AlertTriangle" size={24} className="text-destructive" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  Cancel Booking Request?
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Are you sure you want to cancel this booking request? This action cannot be undone.
-                </p>
-                {selectedBooking && (
-                  <div className="mt-4 p-3 bg-muted rounded-lg">
-                    <p className="text-sm font-medium text-foreground">
-                      {selectedBooking?.eventTitle}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Request ID: {selectedBooking?.requestId}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                variant="outline"
-                size="default"
-                onClick={() => setShowCancelModal(false)}
-                fullWidth
-                className="sm:flex-1"
-              >
-                Go Back
-              </Button>
-              <Button
-                variant="destructive"
-                size="default"
-                iconName="Trash2"
-                iconPosition="left"
-                onClick={confirmCancel}
-                fullWidth
-                className="sm:flex-1"
-              >
-                Yes, Cancel Request
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

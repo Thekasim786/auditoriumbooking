@@ -1,63 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../AppIcon';
 
-const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }) => {
+const Sidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [notifications, setNotifications] = useState({
+
+  // 🔹 Get logged in user from storage
+  const storedUser =
+    JSON.parse(localStorage.getItem("user")) ||
+    JSON.parse(sessionStorage.getItem("user"));
+
+  const userRole = storedUser?.role === "ROLE_MANAGER" ? "manager" : "faculty";
+  const userName = storedUser?.fullName || "User";
+
+  const [notifications] = useState({
     newRequests: 3,
     pendingApprovals: 5
   });
 
   const facultyNavItems = [
-    {
-      label: 'Dashboard',
-      path: '/faculty/dashboard',
-      icon: 'LayoutDashboard',
-      roleAccess: 'faculty'
-    },
-    {
-      label: 'New Request',
-      path: '/booking-request-form',
-      icon: 'Plus',
-      roleAccess: 'faculty'
-    },
-    {
-      label: 'Calendar',
-      path: '/booking-calendar-view',
-      icon: 'Calendar',
-      roleAccess: 'faculty'
-    },
-    {
-      label: 'My Bookings',
-      path: '/booking-history',
-      icon: 'History',
-      roleAccess: 'faculty'
-    }
+    { label: 'Dashboard', path: '/faculty/dashboard', icon: 'LayoutDashboard' },
+    { label: 'New Request', path: '/booking-request-form', icon: 'Plus' },
+    { label: 'Calendar', path: '/booking-calendar-view', icon: 'Calendar' },
+    { label: 'My Bookings', path: '/booking-history', icon: 'History' }
   ];
 
   const managerNavItems = [
-    {
-      label: 'Dashboard',
-      path: '/manager/dashboard',
-      icon: 'LayoutDashboard',
-      roleAccess: 'manager',
-      badge: notifications?.newRequests
-    },
-    {
-      label: 'Calendar',
-      path: '/booking-calendar-view',
-      icon: 'Calendar',
-      roleAccess: 'manager'
-    },
-    {
-      label: 'All Bookings',
-      path: '/booking-history',
-      icon: 'History',
-      roleAccess: 'manager',
-      badge: notifications?.pendingApprovals
-    }
+    { label: 'Dashboard', path: '/manager/dashboard', icon: 'LayoutDashboard', badge: notifications?.newRequests },
+    { label: 'Calendar', path: '/booking-calendar-view', icon: 'Calendar' },
+    { label: 'All Bookings', path: '/booking-history', icon: 'History', badge: notifications?.pendingApprovals }
   ];
 
   const navigationItems = userRole === 'manager' ? managerNavItems : facultyNavItems;
@@ -68,17 +41,12 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
         setIsMobileOpen(false);
       }
     };
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
-    if (isMobileOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+    document.body.style.overflow = isMobileOpen ? 'hidden' : 'unset';
   }, [isMobileOpen]);
 
   const handleMobileToggle = () => {
@@ -95,6 +63,16 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
     return location?.pathname === path;
   };
 
+  // ✅ Logout Function
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+
+    navigate("/login");
+  };
+
   return (
     <>
       <button
@@ -104,6 +82,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
       >
         <Icon name={isMobileOpen ? 'X' : 'Menu'} size={24} />
       </button>
+
       {isMobileOpen && (
         <div
           className="sidebar-overlay"
@@ -111,11 +90,13 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
           aria-hidden="true"
         />
       )}
+
       <aside
         className={`sidebar-container ${isCollapsed ? 'collapsed' : ''} ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
+        {/* Logo */}
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <Icon name="Building2" size={24} color="var(--color-primary)" />
@@ -123,6 +104,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
           <span className="sidebar-brand-text">AuditoriumBooking</span>
         </div>
 
+        {/* User Section */}
         <div className="sidebar-user-section">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -131,7 +113,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
-                  {userRole === 'manager' ? 'Dr. Rajesh Kumar' : 'Prof. Priya Sharma'}
+                  {userName}
                 </p>
                 <p className="text-xs text-muted-foreground capitalize">
                   {userRole === 'manager' ? 'Auditorium Manager' : 'Faculty Member'}
@@ -141,6 +123,7 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
           </div>
         </div>
 
+        {/* Navigation */}
         <nav className="sidebar-nav" aria-label="Main navigation">
           <ul className="space-y-2">
             {navigationItems?.map((item) => (
@@ -151,12 +134,11 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
                   className={`sidebar-nav-item ${
                     isActivePath(item?.path) ? 'active' : ''
                   }`}
-                  aria-current={isActivePath(item?.path) ? 'page' : undefined}
                 >
                   <Icon name={item?.icon} size={20} />
                   <span className="sidebar-nav-item-text">{item?.label}</span>
                   {item?.badge && item?.badge > 0 && (
-                    <span className="sidebar-badge" aria-label={`${item?.badge} notifications`}>
+                    <span className="sidebar-badge">
                       {item?.badge}
                     </span>
                   )}
@@ -166,11 +148,11 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
           </ul>
         </nav>
 
+        {/* Bottom Buttons */}
         <div className="p-4 border-t border-border">
           <button
             onClick={onToggleCollapse}
             className="sidebar-nav-item w-full hidden lg:flex"
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <Icon name={isCollapsed ? 'ChevronRight' : 'ChevronLeft'} size={20} />
             <span className="sidebar-nav-item-text">
@@ -179,8 +161,8 @@ const Sidebar = ({ isCollapsed = false, onToggleCollapse, userRole = 'faculty' }
           </button>
 
           <button
+            onClick={handleLogout}
             className="sidebar-nav-item w-full mt-2"
-            aria-label="Logout"
           >
             <Icon name="LogOut" size={20} />
             <span className="sidebar-nav-item-text">Logout</span>
