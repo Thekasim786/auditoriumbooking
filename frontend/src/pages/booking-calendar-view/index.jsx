@@ -7,6 +7,7 @@ import DayView from './components/DayView';
 import WeekView from './components/WeekView';
 import MonthView from './components/MonthView';
 import BookingDetailPanel from './components/BookingDetailPanel';
+import MobileAgendaView from './components/MobileAgendaView';
 
 const BookingCalendarView = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -299,7 +300,14 @@ const BookingCalendarView = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            {(
+            {isMobile ? (
+              <MobileAgendaView
+                bookings={filteredBookings}
+                currentDate={currentDate}
+                onBookingSelect={handleBookingSelect}
+                onNavigate={handleNavigate}
+              />
+            ) : (
               <>
                 {viewMode === 'day' && (
                   <DayView

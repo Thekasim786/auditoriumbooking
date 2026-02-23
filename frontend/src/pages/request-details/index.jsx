@@ -4,8 +4,14 @@ import MainLayout from '../../components/navigation/MainLayout';
 import Breadcrumbs from '../../components/navigation/Breadcrumbs';
 import RequestHeader from './components/RequestHeader';
 import FacultyInformation from './components/FacultyInformation';
+import EventDetails from './components/EventDetails';
 import FacilityRequirements from './components/FacilityRequirements';
 import RequestTimeline from './components/RequestTimeline';
+import ApprovalPanel from './components/ApprovalPanel';
+import VenueCompatibility from './components/VenueCompatibility';
+import CommunicationThread from './components/CommunicationThread';
+import DocumentAttachments from './components/DocumentAttachments';
+import AuditTrail from './components/AuditTrail';
 
 const RequestDetails = () => {
   const navigate = useNavigate();
@@ -104,20 +110,6 @@ const RequestDetails = () => {
     "Projector",
     "Sound System",
     "Microphones",
-    "Air Conditioning",
-    "WiFi"]
-
-  },
-  {
-    name: "Conference Room 1",
-    location: "Administrative Block, Second Floor",
-    capacity: 100,
-    floor: "Second Floor",
-    isAvailable: false,
-    availableFacilities: [
-    "Projector",
-    "Video Conferencing",
-    "Whiteboard",
     "Air Conditioning",
     "WiFi"]
 
@@ -254,19 +246,33 @@ const RequestDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           <div className="lg:col-span-2 space-y-6 md:space-y-8">
             <FacultyInformation faculty={mockFaculty} />
+            <EventDetails event={mockEvent} />
             <FacilityRequirements facilities={mockFacilities} />
+            <VenueCompatibility venues={mockVenues} requiredCapacity={mockEvent?.expectedAttendees} />
+            <DocumentAttachments documents={mockDocuments} />
           </div>
 
           <div className="space-y-6 md:space-y-8">
             <RequestTimeline timeline={mockTimeline} />
             
-            
+            {userRole === 'manager' &&
+            <ApprovalPanel
+              requestId={mockRequest?.id}
+              currentStatus={mockRequest?.status}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onRequestModification={handleRequestModification} />
 
+            }
 
+            <CommunicationThread
+              messages={mockMessages}
+              onSendMessage={handleSendMessage} />
 
           </div>
         </div>
 
+        <AuditTrail auditLogs={mockAuditLogs} />
       </div>
     </MainLayout>);
 
