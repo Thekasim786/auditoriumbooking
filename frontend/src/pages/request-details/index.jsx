@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getUser } from '../../utils/auth';
 import MainLayout from '../../components/navigation/MainLayout';
 import Breadcrumbs from '../../components/navigation/Breadcrumbs';
 import RequestHeader from './components/RequestHeader';
@@ -15,7 +16,8 @@ import AuditTrail from './components/AuditTrail';
 
 const RequestDetails = () => {
   const navigate = useNavigate();
-  const [userRole] = useState('manager');
+  const user = getUser();
+  const userRole = user?.role === 'ROLE_MANAGER' ? 'manager' : 'faculty';
 
   const mockRequest = {
     id: "REQ-2026-001",
@@ -217,7 +219,7 @@ const RequestDetails = () => {
 
 
   const handleBack = () => {
-    navigate('/manager-dashboard');
+    navigate('/manager/dashboard');
   };
 
   const handleApprove = (requestId, venue, notes) => {
@@ -248,7 +250,7 @@ const RequestDetails = () => {
             <FacultyInformation faculty={mockFaculty} />
             <EventDetails event={mockEvent} />
             <FacilityRequirements facilities={mockFacilities} />
-            <VenueCompatibility venues={mockVenues} requiredCapacity={mockEvent?.expectedAttendees} />
+            {userRole === 'manager' && <VenueCompatibility venues={mockVenues} requiredCapacity={mockEvent?.expectedAttendees} />}
             <DocumentAttachments documents={mockDocuments} />
           </div>
 

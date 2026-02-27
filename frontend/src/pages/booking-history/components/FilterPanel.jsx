@@ -9,7 +9,8 @@ const FilterPanel = ({
   onFilterChange, 
   onReset, 
   onExport,
-  resultCount 
+  resultCount,
+  userRole
 }) => {
   const statusOptions = [
     { value: 'all', label: 'All Status' },
@@ -60,13 +61,15 @@ const FilterPanel = ({
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Input
-          type="text"
-          label="Search Faculty/Event"
-          placeholder="Search by name or event..."
-          value={filters?.search}
-          onChange={(e) => onFilterChange('search', e?.target?.value)}
-        />
+        {userRole === 'manager' && (
+          <Input
+            type="text"
+            label="Search Faculty/Event"
+            placeholder="Search by name or event..."
+            value={filters?.search}
+            onChange={(e) => onFilterChange('search', e?.target?.value)}
+          />
+        )}
 
         <Select
           label="Status"

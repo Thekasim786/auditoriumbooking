@@ -77,7 +77,7 @@ const Routes = () => {
           <Route
             path="/request-details"
             element={
-              <ProtectedRoute allowedRoles={["ROLE_FACULTY"]}>
+              <ProtectedRoute allowedRoles={["ROLE_MANAGER", "ROLE_FACULTY"]}>
                 <RequestDetails />
               </ProtectedRoute>
             }

@@ -330,6 +330,7 @@ const BookingHistory = () => {
             onReset={handleResetFilters}
             onExport={() => setShowExportModal(true)}
             resultCount={filteredBookings?.length}
+            userRole={userRole}
           />
 
           {showAnalytics && (

@@ -8,7 +8,7 @@ const Breadcrumbs = ({ customItems = null }) => {
   const routeMap = {
     '/faculty-dashboard': 'Dashboard',
     '/booking-request-form': 'New Request',
-    '/manager-dashboard': 'Dashboard',
+    '/manager/dashboard': 'Dashboard',
     '/booking-calendar-view': 'Calendar',
     '/request-details': 'Request Details',
     '/booking-history': 'Booking History'
