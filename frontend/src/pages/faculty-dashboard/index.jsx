@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MainLayout from '../../components/navigation/MainLayout';
 import Breadcrumbs from '../../components/navigation/Breadcrumbs';
-import QuickBookingPanel from './components/QuickBookingPanel';
 import StatusDashboard from './components/StatusDashboard';
 import StatsOverview from './components/StatsOverview';
 import { authFetch, getUser } from '../../utils/auth';
@@ -104,11 +103,7 @@ const FacultyDashboard = () => {
         <StatsOverview stats={stats} loading={loading} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          <div className="lg:col-span-1">
-            <QuickBookingPanel onBookingSubmitted={fetchMyBookings} />
-          </div>
-
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <StatusDashboard bookings={bookings} loading={loading} onRefresh={fetchMyBookings} />
           </div>
         </div>

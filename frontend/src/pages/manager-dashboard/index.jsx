@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/navigation/MainLayout';
 import Breadcrumbs from '../../components/navigation/Breadcrumbs';
 import MetricsCard from './components/MetricsCard';
+import RequestQueueTable from './components/RequestQueueTable';
 import AvailabilityCalendar from './components/AvailabilityCalendar';
 import ConflictDetectionPanel from './components/ConflictDetectionPanel';
 import QuickActionsPanel from './components/QuickActionsPanel';
@@ -10,6 +11,10 @@ import RecentActivityFeed from './components/RecentActivityFeed';
 
 const ManagerDashboard = () => {
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    sessionStorage.setItem('userRole', 'manager');
+  }, []);
 
   const [pendingRequests] = useState([
     {
@@ -237,7 +242,15 @@ const ManagerDashboard = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-6 md:mb-8">
-          
+          <div className="lg:col-span-2">
+            <RequestQueueTable
+              requests={pendingRequests}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onViewDetails={handleViewDetails}
+              onBulkAction={handleBulkAction}
+            />
+          </div>
           {/* Availability Calendar - Takes 1 column */}
           <div className="lg:col-span-1">
             <AvailabilityCalendar
