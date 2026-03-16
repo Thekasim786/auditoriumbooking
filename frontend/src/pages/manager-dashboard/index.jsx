@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/navigation/MainLayout';
 import Breadcrumbs from '../../components/navigation/Breadcrumbs';
@@ -8,156 +8,330 @@ import AvailabilityCalendar from './components/AvailabilityCalendar';
 import ConflictDetectionPanel from './components/ConflictDetectionPanel';
 import QuickActionsPanel from './components/QuickActionsPanel';
 import RecentActivityFeed from './components/RecentActivityFeed';
+import { authFetch, getUser } from '../../utils/auth';
 
 const ManagerDashboard = () => {
   const navigate = useNavigate();
+  const user = getUser();
 
-  React.useEffect(() => {
-    sessionStorage.setItem('userRole', 'manager');
+  const [loading, setLoading] = useState(true);
+  const [allBookings, setAllBookings] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [conflicts, setConflicts] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [metrics, setMetrics] = useState({
+    pending: 0,
+    todayBookings: 0,
+    utilization: '0%',
+    totalMonthly: 0
+  });
+
+  useEffect(() => {
+    fetchDashboardData();
   }, []);
 
-  const [pendingRequests] = useState([
-    {
-      id: "REQ001",
-      submittedAt: "2026-01-12T08:30:00",
-      facultyName: "Dr. Amit Verma",
-      department: "Computer Science",
-      eventDate: "25/01/2026",
-      duration: "09:00 - 12:00 (3 hours)",
-      facilities: [
-        { name: "Projector", icon: "Projector" },
-        { name: "Mic", icon: "Mic" },
-        { name: "AC", icon: "Wind" }
-      ],
-      priority: "high"
-    },
-    {
-      id: "REQ002",
-      submittedAt: "2026-01-12T09:15:00",
-      facultyName: "Prof. Sneha Patel",
-      department: "Electronics",
-      eventDate: "28/01/2026",
-      duration: "14:00 - 17:00 (3 hours)",
-      facilities: [
-        { name: "Projector", icon: "Projector" },
-        { name: "Sound", icon: "Volume2" }
-      ],
-      priority: "medium"
-    },
-    {
-      id: "REQ003",
-      submittedAt: "2026-01-12T10:45:00",
-      facultyName: "Dr. Rajesh Kumar",
-      department: "Mechanical",
-      eventDate: "30/01/2026",
-      duration: "10:00 - 13:00 (3 hours)",
-      facilities: [
-        { name: "Projector", icon: "Projector" },
-        { name: "Mic", icon: "Mic" },
-        { name: "AC", icon: "Wind" },
-        { name: "WiFi", icon: "Wifi" }
-      ],
-      priority: "low"
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      // Fetch all bookings
+      const allRes = await authFetch('/manager/bookings');
+      if (!allRes.ok) throw new Error('Failed to fetch bookings');
+      const allData = await allRes.json();
+      setAllBookings(allData);
+
+      // Build pending requests for RequestQueueTable
+      const pending = allData
+        .filter(b => b.status === 'PENDING')
+        .map(b => ({
+          id: `REQ${String(b.id).padStart(3, '0')}`,
+          bookingId: b.id,
+          submittedAt: b.createdAt,
+          facultyName: b.facultyName,
+          department: '',
+          eventDate: formatDateDisplay(b.eventStartDate),
+          duration: `${b.startTime} - ${b.endTime}`,
+          facilities: buildFacilityIcons(b.technicalEquipment),
+          priority: b.priority || 'normal',
+          // Keep raw for API calls
+          _raw: b
+        }));
+      setPendingRequests(pending);
+
+      // Build approved bookings for AvailabilityCalendar
+      const approved = allData
+        .filter(b => b.status === 'APPROVED')
+        .map(b => ({
+          date: formatDateDisplay(b.eventStartDate),
+          timeSlot: `${b.startTime} - ${b.endTime}`,
+          facultyName: b.facultyName
+        }));
+      setBookings(approved);
+
+      // Detect conflicts (overlapping pending requests on same date)
+      const detectedConflicts = detectConflicts(allData);
+      setConflicts(detectedConflicts);
+
+      // Build recent activities from reviewed bookings
+      const activities = buildRecentActivities(allData);
+      setRecentActivities(activities);
+
+      // Calculate metrics
+      const today = new Date().toISOString().split('T')[0];
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+
+      const pendingCount = allData.filter(b => b.status === 'PENDING').length;
+      const todayCount = allData.filter(b => b.eventStartDate === today && b.status === 'APPROVED').length;
+      const monthlyTotal = allData.filter(b => {
+        const d = new Date(b.eventStartDate);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      }).length;
+      const approvedCount = allData.filter(b => b.status === 'APPROVED').length;
+      const utilRate = allData.length > 0
+        ? Math.round((approvedCount / allData.length) * 100)
+        : 0;
+
+      setMetrics({
+        pending: pendingCount,
+        todayBookings: todayCount,
+        utilization: `${utilRate}%`,
+        totalMonthly: monthlyTotal
+      });
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+    } finally {
+      setLoading(false);
     }
-  ]);
-
-  const [bookings] = useState([
-    { date: "15/01/2026", timeSlot: "09:00 - 12:00", facultyName: "Dr. Priya Sharma" },
-    { date: "15/01/2026", timeSlot: "14:00 - 17:00", facultyName: "Prof. Anil Gupta" },
-    { date: "18/01/2026", timeSlot: "10:00 - 13:00", facultyName: "Dr. Meera Singh" },
-    { date: "20/01/2026", timeSlot: "09:00 - 12:00", facultyName: "Prof. Vikram Rao" },
-    { date: "20/01/2026", timeSlot: "14:00 - 17:00", facultyName: "Dr. Kavita Desai" },
-    { date: "20/01/2026", timeSlot: "18:00 - 20:00", facultyName: "Prof. Suresh Nair" },
-    { date: "22/01/2026", timeSlot: "10:00 - 13:00", facultyName: "Dr. Anjali Mehta" }
-  ]);
-
-  const [conflicts] = useState([
-    {
-      id: "CONF001",
-      type: "Time Overlap",
-      severity: "high",
-      description: "Two requests for the same time slot on 25/01/2026",
-      affectedBookings: [
-        { facultyName: "Dr. Amit Verma", date: "25/01/2026", timeSlot: "09:00 - 12:00" },
-        { facultyName: "Prof. Ravi Joshi", date: "25/01/2026", timeSlot: "09:00 - 11:00" }
-      ],
-      suggestions: [
-        "Reschedule Prof. Ravi Joshi to 14:00 - 16:00 on 25/01/2026",
-        "Move Prof. Ravi Joshi to 26/01/2026 at 09:00 - 11:00"
-      ]
-    },
-    {
-      id: "CONF002",
-      type: "Facility Unavailable",
-      severity: "medium",
-      description: "Requested projector is under maintenance",
-      affectedBookings: [
-        { facultyName: "Prof. Sneha Patel", date: "28/01/2026", timeSlot: "14:00 - 17:00" }
-      ],
-      suggestions: [
-        "Use backup projector from Room 201",
-        "Reschedule to 29/01/2026 when maintenance is complete"
-      ]
-    }
-  ]);
-
-  const [recentActivities] = useState([
-    {
-      id: "ACT001",
-      type: "approved",
-      performedBy: "You",
-      action: "approved booking request from",
-      target: "Dr. Priya Sharma",
-      details: "Annual Tech Symposium - Main Auditorium",
-      timestamp: "2026-01-12T06:30:00",
-      eventDate: "15/01/2026"
-    },
-    {
-      id: "ACT002",
-      type: "rejected",
-      performedBy: "You",
-      action: "rejected booking request from",
-      target: "Prof. Arun Kumar",
-      details: "Conflicting time slot with existing booking",
-      timestamp: "2026-01-12T05:45:00",
-      eventDate: "18/01/2026"
-    },
-    {
-      id: "ACT003",
-      type: "submitted",
-      performedBy: "Dr. Amit Verma",
-      action: "submitted new booking request for",
-      target: "Department Seminar",
-      details: "Computer Science Department - 3 hours duration",
-      timestamp: "2026-01-12T05:30:00",
-      eventDate: "25/01/2026"
-    },
-    {
-      id: "ACT004",
-      type: "modified",
-      performedBy: "You",
-      action: "modified booking for",
-      target: "Prof. Meera Singh",
-      details: "Changed time slot from 09:00 to 10:00",
-      timestamp: "2026-01-12T04:15:00",
-      eventDate: "18/01/2026"
-    }
-  ]);
-
-  const handleApprove = (requestId) => {
-    console.log('Approving request:', requestId);
   };
 
-  const handleReject = (requestId) => {
-    console.log('Rejecting request:', requestId);
+  // Format "2026-03-15" → "15/03/2026"
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
+  // Convert technicalEquipment map to facility icons array
+  const buildFacilityIcons = (equipment) => {
+    if (!equipment || typeof equipment !== 'object') return [];
+
+    const iconMap = {
+      projector: { name: 'Projector', icon: 'Projector' },
+      microphone: { name: 'Mic', icon: 'Mic' },
+      soundSystem: { name: 'Sound', icon: 'Volume2' },
+      whiteboard: { name: 'Whiteboard', icon: 'PenSquare' },
+      videoConferencing: { name: 'Video', icon: 'Video' },
+      wifi: { name: 'WiFi', icon: 'Wifi' }
+    };
+
+    return Object.entries(equipment)
+      .filter(([_, value]) => value)
+      .map(([key]) => iconMap[key] || { name: key, icon: 'Settings' });
+  };
+
+  // Detect time-slot conflicts among pending/approved bookings
+  const detectConflicts = (data) => {
+    const detected = [];
+    const pendingAndApproved = data.filter(b => b.status === 'PENDING' || b.status === 'APPROVED');
+
+    for (let i = 0; i < pendingAndApproved.length; i++) {
+      for (let j = i + 1; j < pendingAndApproved.length; j++) {
+        const a = pendingAndApproved[i];
+        const b = pendingAndApproved[j];
+
+        if (a.eventStartDate === b.eventStartDate &&
+            a.startTime < b.endTime && a.endTime > b.startTime) {
+          detected.push({
+            id: `CONF${detected.length + 1}`,
+            type: 'Time Overlap',
+            severity: 'high',
+            description: `Two requests overlap on ${formatDateDisplay(a.eventStartDate)}`,
+            affectedBookings: [
+              { facultyName: a.facultyName, date: formatDateDisplay(a.eventStartDate), timeSlot: `${a.startTime} - ${a.endTime}` },
+              { facultyName: b.facultyName, date: formatDateDisplay(b.eventStartDate), timeSlot: `${b.startTime} - ${b.endTime}` }
+            ],
+            suggestions: [
+              `Reschedule ${b.facultyName}'s event to a different time slot`,
+              `Move one event to the next available date`
+            ]
+          });
+        }
+      }
+    }
+
+    return detected;
+  };
+
+  // Build activity feed from booking history
+  const buildRecentActivities = (data) => {
+    const activities = [];
+
+    // Recently reviewed bookings (approved/rejected)
+    const reviewed = data
+      .filter(b => b.reviewedAt)
+      .sort((a, b) => new Date(b.reviewedAt) - new Date(a.reviewedAt))
+      .slice(0, 5);
+
+    reviewed.forEach((b, i) => {
+      activities.push({
+        id: `ACT${String(i + 1).padStart(3, '0')}`,
+        type: b.status === 'APPROVED' ? 'approved' : 'rejected',
+        performedBy: b.reviewedByName || 'You',
+        action: b.status === 'APPROVED' ? 'approved booking request from' : 'rejected booking request from',
+        target: b.facultyName,
+        details: `${b.eventTitle || 'Booking'} - ${b.venue || 'Auditorium'}`,
+        timestamp: b.reviewedAt,
+        eventDate: formatDateDisplay(b.eventStartDate)
+      });
+    });
+
+    // Recently submitted (pending)
+    const recentPending = data
+      .filter(b => b.status === 'PENDING')
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 3);
+
+    recentPending.forEach((b, i) => {
+      activities.push({
+        id: `ACT${String(reviewed.length + i + 1).padStart(3, '0')}`,
+        type: 'submitted',
+        performedBy: b.facultyName,
+        action: 'submitted new booking request for',
+        target: b.eventTitle || 'Event',
+        details: `${b.venue || 'Auditorium'} - ${b.startTime} to ${b.endTime}`,
+        timestamp: b.createdAt,
+        eventDate: formatDateDisplay(b.eventStartDate)
+      });
+    });
+
+    // Sort all by timestamp descending
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    return activities.slice(0, 8);
+  };
+
+  const handleApprove = async (requestId) => {
+    const request = pendingRequests.find(r => r.id === requestId);
+    if (!request?._raw?.id) return;
+
+    try {
+      const response = await authFetch('/manager/bookings/review', {
+        method: 'POST',
+        body: JSON.stringify({
+          bookingId: request._raw.id,
+          action: 'APPROVED',
+          remarks: 'Approved from manager dashboard'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || 'Failed to approve booking');
+        return;
+      }
+
+      // Refresh dashboard
+      fetchDashboardData();
+    } catch (err) {
+      console.error('Approve error:', err);
+      alert('Failed to approve booking');
+    }
+  };
+
+  const handleReject = async (requestId) => {
+    const request = pendingRequests.find(r => r.id === requestId);
+    if (!request?._raw?.id) return;
+
+    const reason = prompt('Enter rejection reason:');
+    if (reason === null) return; // cancelled prompt
+
+    try {
+      const response = await authFetch('/manager/bookings/review', {
+        method: 'POST',
+        body: JSON.stringify({
+          bookingId: request._raw.id,
+          action: 'REJECTED',
+          remarks: reason || 'Rejected from manager dashboard'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || 'Failed to reject booking');
+        return;
+      }
+
+      fetchDashboardData();
+    } catch (err) {
+      console.error('Reject error:', err);
+      alert('Failed to reject booking');
+    }
   };
 
   const handleViewDetails = (requestId) => {
-    navigate('/request-details', { state: { requestId } });
+    const request = pendingRequests.find(r => r.id === requestId);
+    if (request?._raw) {
+      // Transform for RequestDetails page
+      const booking = {
+        requestId: request.id,
+        id: request._raw.id,
+        eventTitle: request._raw.eventTitle,
+        eventDate: request._raw.eventStartDate,
+        startTime: request._raw.startTime,
+        endTime: request._raw.endTime,
+        status: request._raw.status.toLowerCase(),
+        auditorium: request._raw.venue,
+        facultyName: request._raw.facultyName,
+        facultyEmail: request._raw.facultyEmail,
+        attendees: request._raw.expectedAttendees,
+        eventPurpose: request._raw.eventPurpose,
+        eventType: request._raw.eventType,
+        facilities: buildFacilityNames(request._raw.technicalEquipment, request._raw.additionalServices),
+        remarks: request._raw.managerRemarks,
+        reviewedByName: request._raw.reviewedByName,
+        reviewedAt: request._raw.reviewedAt,
+        priority: request._raw.priority,
+        specialRequirements: request._raw.specialRequirements,
+        specialInstructions: request._raw.specialInstructions,
+        submissionDate: request._raw.createdAt ? request._raw.createdAt.split('T')[0] : ''
+      };
+      navigate('/request-details', { state: { booking } });
+    } else {
+      navigate('/request-details', { state: { requestId } });
+    }
   };
 
-  const handleBulkAction = (action, requestIds) => {
-    console.log(`Bulk ${action}:`, requestIds);
+  const buildFacilityNames = (equipment, services) => {
+    const facilities = [];
+    if (equipment && typeof equipment === 'object') {
+      Object.entries(equipment).forEach(([key, value]) => {
+        if (value) {
+          facilities.push(key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim());
+        }
+      });
+    }
+    if (services && typeof services === 'object') {
+      Object.entries(services).forEach(([key, value]) => {
+        if (value) {
+          facilities.push(key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim());
+        }
+      });
+    }
+    return facilities;
+  };
+
+  const handleBulkAction = async (action, requestIds) => {
+    for (const reqId of requestIds) {
+      if (action === 'approve') {
+        await handleApprove(reqId);
+      } else if (action === 'reject') {
+        await handleReject(reqId);
+      }
+    }
   };
 
   const handleDateSelect = (date) => {
@@ -198,7 +372,7 @@ const ManagerDashboard = () => {
             Manager Dashboard
           </h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            Review and manage auditorium booking requests with FCFS policy
+            Welcome back, {user?.fullName || 'Manager'}! Review and manage auditorium booking requests with FCFS policy
           </p>
         </div>
 
@@ -206,71 +380,68 @@ const ManagerDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
           <MetricsCard
             title="Pending Requests"
-            value="3"
+            value={loading ? '...' : String(metrics.pending)}
             subtitle="Awaiting review"
             icon="Clock"
             variant="warning"
-            trend="up"
-            trendValue="+2"
           />
           <MetricsCard
             title="Today's Bookings"
-            value="2"
+            value={loading ? '...' : String(metrics.todayBookings)}
             subtitle="Scheduled events"
             icon="Calendar"
             variant="primary"
           />
           <MetricsCard
-            title="Utilization Rate"
-            value="78%"
-            subtitle="This month"
+            title="Approval Rate"
+            value={loading ? '...' : metrics.utilization}
+            subtitle="Overall"
             icon="TrendingUp"
             variant="success"
-            trend="up"
-            trendValue="+12%"
           />
           <MetricsCard
             title="Total Bookings"
-            value="45"
+            value={loading ? '...' : String(metrics.totalMonthly)}
             subtitle="This month"
             icon="BarChart3"
             variant="default"
-            trend="up"
-            trendValue="+8"
           />
         </div>
 
-        {/* Main Content Grid */}
+        {/* Pending Requests - Full Width for easy approve/reject */}
+        <div className="mb-6 md:mb-8">
+          <RequestQueueTable
+            requests={pendingRequests}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onViewDetails={handleViewDetails}
+            onBulkAction={handleBulkAction}
+          />
+        </div>
+
+        {/* Calendar, Conflicts & Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-6 md:mb-8">
-          <div className="lg:col-span-2">
-            <RequestQueueTable
-              requests={pendingRequests}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onViewDetails={handleViewDetails}
-              onBulkAction={handleBulkAction}
-            />
-          </div>
-          {/* Availability Calendar - Takes 1 column */}
+          {/* Availability Calendar */}
           <div className="lg:col-span-1">
             <AvailabilityCalendar
               bookings={bookings}
               onDateSelect={handleDateSelect}
             />
           </div>
-        </div>
 
-        {/* Secondary Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
           {/* Conflict Detection */}
-          <ConflictDetectionPanel
-            conflicts={conflicts}
-            onResolve={handleResolveConflict}
-            onViewAlternatives={handleViewAlternatives}
-          />
+          <div className="lg:col-span-1">
+            <ConflictDetectionPanel
+              conflicts={conflicts}
+              onResolve={handleResolveConflict}
+              onViewAlternatives={handleViewAlternatives}
+            />
+          </div>
 
           {/* Recent Activity Feed */}
-          <RecentActivityFeed activities={recentActivities} />
+          <div className="lg:col-span-1">
+            <RecentActivityFeed activities={recentActivities} />
+          </div>
         </div>
 
         {/* Quick Actions */}

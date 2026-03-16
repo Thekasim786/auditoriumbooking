@@ -14,19 +14,15 @@ import java.util.List;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    // Faculty: get all their own bookings
     List<Booking> findByFacultyIdOrderByCreatedAtDesc(Long facultyId);
 
-    // Faculty: get their bookings filtered by status
     List<Booking> findByFacultyIdAndStatusOrderByCreatedAtDesc(Long facultyId, BookingStatus status);
 
-    // Manager: get all bookings
     List<Booking> findAllByOrderByCreatedAtDesc();
 
-    // Manager: get bookings filtered by status (FCFS = oldest first)
     List<Booking> findByStatusOrderByCreatedAtAsc(BookingStatus status);
 
-    // Check for time slot conflicts on a given date (only APPROVED bookings)
+    // Check conflicts for approved bookings
     @Query("SELECT b FROM Booking b WHERE b.eventStartDate = :date " +
             "AND b.status = 'APPROVED' " +
             "AND b.startTime < :endTime " +
@@ -37,7 +33,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("endTime") LocalTime endTime
     );
 
-    // Get approved bookings for a specific date (calendar view)
     List<Booking> findByEventStartDateAndStatusOrderByStartTimeAsc(LocalDate eventStartDate, BookingStatus status);
 
     // Get upcoming approved bookings
