@@ -9,14 +9,12 @@ import FilterPanel from './components/FilterPanel';
 import BookingTable from './components/BookingTable';
 import BookingCard from './components/BookingCard';
 import AnalyticsChart from './components/AnalyticsChart';
-import ExportModal from './components/ExportModal';
 import { authFetch, getUser, isManager } from '../../utils/auth';
 
 const BookingHistory = () => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('table');
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -285,8 +283,8 @@ const BookingHistory = () => {
             filters={filters}
             onFilterChange={handleFilterChange}
             onReset={handleResetFilters}
-            onExport={() => setShowExportModal(true)}
             resultCount={filteredBookings?.length}
+            isManager={userIsManager}
           />
 
           {showAnalytics && (
@@ -387,12 +385,6 @@ const BookingHistory = () => {
             </>
           )}
         </div>
-
-        <ExportModal
-          isOpen={showExportModal}
-          onClose={() => setShowExportModal(false)}
-          onExport={handleExport}
-        />
       </MainLayout>
     </>
   );

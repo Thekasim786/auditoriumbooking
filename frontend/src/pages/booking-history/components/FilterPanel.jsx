@@ -8,8 +8,8 @@ const FilterPanel = ({
   filters, 
   onFilterChange, 
   onReset, 
-  onExport,
-  resultCount 
+  resultCount,
+  isManager = false
 }) => {
   const statusOptions = [
     { value: 'all', label: 'All Status' },
@@ -48,25 +48,18 @@ const FilterPanel = ({
           >
             Reset
           </Button>
-          <Button
-            variant="default"
-            size="sm"
-            iconName="Download"
-            iconPosition="left"
-            onClick={onExport}
-          >
-            Export
-          </Button>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Input
-          type="text"
-          label="Search Faculty/Event"
-          placeholder="Search by name or event..."
-          value={filters?.search}
-          onChange={(e) => onFilterChange('search', e?.target?.value)}
-        />
+        {isManager && (
+          <Input
+            type="text"
+            label="Search Faculty/Event"
+            placeholder="Search by name or event..."
+            value={filters?.search}
+            onChange={(e) => onFilterChange('search', e?.target?.value)}
+          />
+        )}
 
         <Select
           label="Status"

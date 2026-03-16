@@ -6,7 +6,6 @@ import MetricsCard from './components/MetricsCard';
 import RequestQueueTable from './components/RequestQueueTable';
 import AvailabilityCalendar from './components/AvailabilityCalendar';
 import ConflictDetectionPanel from './components/ConflictDetectionPanel';
-import QuickActionsPanel from './components/QuickActionsPanel';
 import RecentActivityFeed from './components/RecentActivityFeed';
 import { authFetch, getUser } from '../../utils/auth';
 
@@ -442,11 +441,6 @@ const ManagerDashboard = () => {
           <div className="lg:col-span-1">
             <RecentActivityFeed activities={recentActivities} />
           </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mb-6 md:mb-8">
-          <QuickActionsPanel onAction={handleQuickAction} />
         </div>
       </div>
     </MainLayout>

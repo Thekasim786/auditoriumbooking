@@ -1,7 +1,8 @@
 import React from "react";
-import { BrowserRouter, Routes as RouterRoutes, Route } from "react-router-dom";
+import { BrowserRouter, Routes as RouterRoutes, Route, Navigate } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import ManagerDashboard from './pages/manager-dashboard';
 import FacultyDashboard from './pages/faculty-dashboard';
@@ -10,6 +11,12 @@ import BookingCalendarView from './pages/booking-calendar-view';
 import BookingHistory from './pages/booking-history';
 import RequestDetails from './pages/request-details';
 import LoginPage from './pages/login-page';
+import { isAuthenticated, isManager } from './utils/auth';
+
+const AuthRedirect = () => {
+  if (!isAuthenticated()) return <LoginPage />;
+  return <Navigate to={isManager() ? '/manager/dashboard' : '/faculty/dashboard'} replace />;
+};
 
 const Routes = () => {
   return (
@@ -17,14 +24,14 @@ const Routes = () => {
       <ErrorBoundary>
       <ScrollToTop />
       <RouterRoutes>
-        <Route path="/" element={<LoginPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/manager/dashboard" element={<ManagerDashboard />} />
-        <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
-        <Route path="/booking-request-form" element={<BookingRequestForm />} />
-        <Route path="/booking-calendar-view" element={<BookingCalendarView />} />
-        <Route path="/booking-history" element={<BookingHistory />} />
-        <Route path="/request-details" element={<RequestDetails />} />
+        <Route path="/" element={<AuthRedirect />} />
+        <Route path="/login" element={<AuthRedirect />} />
+        <Route path="/manager/dashboard" element={<ProtectedRoute role="manager"><ManagerDashboard /></ProtectedRoute>} />
+        <Route path="/faculty/dashboard" element={<ProtectedRoute role="faculty"><FacultyDashboard /></ProtectedRoute>} />
+        <Route path="/booking-request-form" element={<ProtectedRoute role="faculty"><BookingRequestForm /></ProtectedRoute>} />
+        <Route path="/booking-calendar-view" element={<ProtectedRoute><BookingCalendarView /></ProtectedRoute>} />
+        <Route path="/booking-history" element={<ProtectedRoute><BookingHistory /></ProtectedRoute>} />
+        <Route path="/request-details" element={<ProtectedRoute><RequestDetails /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>
       </ErrorBoundary>
