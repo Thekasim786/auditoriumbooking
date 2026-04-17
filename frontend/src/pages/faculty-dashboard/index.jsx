@@ -28,7 +28,6 @@ const FacultyDashboard = () => {
 
       const data = await response.json();
 
-      // Transform for child components
       const transformed = data.map((booking) => ({
         requestId: `REQ-${new Date(booking.createdAt).getFullYear()}-${String(booking.id).padStart(3, '0')}`,
         id: booking.id,
@@ -49,7 +48,6 @@ const FacultyDashboard = () => {
 
       setBookings(transformed);
 
-      // Calculate stats
       setStats({
         total: transformed.length,
         pending: transformed.filter(b => b.status === 'pending').length,

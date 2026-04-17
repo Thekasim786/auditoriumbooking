@@ -33,13 +33,11 @@ const ManagerDashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Fetch all bookings
       const allRes = await authFetch('/manager/bookings');
       if (!allRes.ok) throw new Error('Failed to fetch bookings');
       const allData = await allRes.json();
       setAllBookings(allData);
 
-      // Build pending requests for RequestQueueTable
       const pending = allData
         .filter(b => b.status === 'PENDING')
         .map(b => ({
@@ -52,12 +50,10 @@ const ManagerDashboard = () => {
           duration: `${b.startTime} - ${b.endTime}`,
           facilities: buildFacilityIcons(b.technicalEquipment),
           priority: b.priority || 'normal',
-          // Keep raw for API calls
           _raw: b
         }));
       setPendingRequests(pending);
 
-      // Build approved bookings for AvailabilityCalendar
       const approved = allData
         .filter(b => b.status === 'APPROVED')
         .map(b => ({
@@ -67,15 +63,12 @@ const ManagerDashboard = () => {
         }));
       setBookings(approved);
 
-      // Detect conflicts (overlapping pending requests on same date)
       const detectedConflicts = detectConflicts(allData);
       setConflicts(detectedConflicts);
 
-      // Build recent activities from reviewed bookings
       const activities = buildRecentActivities(allData);
       setRecentActivities(activities);
 
-      // Calculate metrics
       const today = new Date().toISOString().split('T')[0];
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
@@ -105,14 +98,12 @@ const ManagerDashboard = () => {
     }
   };
 
-  // Format "2026-03-15" → "15/03/2026"
   const formatDateDisplay = (dateStr) => {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-');
     return `${d}/${m}/${y}`;
   };
 
-  // Convert technicalEquipment map to facility icons array
   const buildFacilityIcons = (equipment) => {
     if (!equipment || typeof equipment !== 'object') return [];
 
@@ -130,7 +121,6 @@ const ManagerDashboard = () => {
       .map(([key]) => iconMap[key] || { name: key, icon: 'Settings' });
   };
 
-  // Detect time-slot conflicts among pending/approved bookings
   const detectConflicts = (data) => {
     const detected = [];
     const pendingAndApproved = data.filter(b => b.status === 'PENDING' || b.status === 'APPROVED');
@@ -163,11 +153,9 @@ const ManagerDashboard = () => {
     return detected;
   };
 
-  // Build activity feed from booking history
   const buildRecentActivities = (data) => {
     const activities = [];
 
-    // Recently reviewed bookings (approved/rejected)
     const reviewed = data
       .filter(b => b.reviewedAt)
       .sort((a, b) => new Date(b.reviewedAt) - new Date(a.reviewedAt))
@@ -186,7 +174,6 @@ const ManagerDashboard = () => {
       });
     });
 
-    // Recently submitted (pending)
     const recentPending = data
       .filter(b => b.status === 'PENDING')
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -205,7 +192,6 @@ const ManagerDashboard = () => {
       });
     });
 
-    // Sort all by timestamp descending
     activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     return activities.slice(0, 8);
@@ -232,7 +218,6 @@ const ManagerDashboard = () => {
         return;
       }
 
-      // Refresh dashboard
       fetchDashboardData();
     } catch (err) {
       console.error('Approve error:', err);
@@ -245,7 +230,7 @@ const ManagerDashboard = () => {
     if (!request?._raw?.id) return;
 
     const reason = prompt('Enter rejection reason:');
-    if (reason === null) return; // cancelled prompt
+    if (reason === null) return;
 
     try {
       const response = await authFetch('/manager/bookings/review', {
@@ -274,7 +259,6 @@ const ManagerDashboard = () => {
   const handleViewDetails = (requestId) => {
     const request = pendingRequests.find(r => r.id === requestId);
     if (request?._raw) {
-      // Transform for RequestDetails page
       const booking = {
         requestId: request.id,
         id: request._raw.id,
@@ -365,7 +349,6 @@ const ManagerDashboard = () => {
       <div className="min-h-screen bg-background">
         <Breadcrumbs />
 
-        {/* Page Header */}
         <div className="mb-6 md:mb-8">
           <h1 className="text-3xl md:text-4xl font-semibold text-foreground mb-2">
             Manager Dashboard
@@ -375,7 +358,6 @@ const ManagerDashboard = () => {
           </p>
         </div>
 
-        {/* Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
           <MetricsCard
             title="Pending Requests"
@@ -407,7 +389,6 @@ const ManagerDashboard = () => {
           />
         </div>
 
-        {/* Pending Requests - Full Width for easy approve/reject */}
         <div className="mb-6 md:mb-8">
           <RequestQueueTable
             requests={pendingRequests}
@@ -418,9 +399,7 @@ const ManagerDashboard = () => {
           />
         </div>
 
-        {/* Calendar, Conflicts & Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-6 md:mb-8">
-          {/* Availability Calendar */}
           <div className="lg:col-span-1">
             <AvailabilityCalendar
               bookings={bookings}
@@ -428,7 +407,6 @@ const ManagerDashboard = () => {
             />
           </div>
 
-          {/* Conflict Detection */}
           <div className="lg:col-span-1">
             <ConflictDetectionPanel
               conflicts={conflicts}
@@ -437,7 +415,6 @@ const ManagerDashboard = () => {
             />
           </div>
 
-          {/* Recent Activity Feed */}
           <div className="lg:col-span-1">
             <RecentActivityFeed activities={recentActivities} />
           </div>

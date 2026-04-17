@@ -11,7 +11,7 @@ const EventDetailsSection = ({
   conflictingBookings
 }) => {
   const venueOptions = [
-    { value: 'main_auditorium', label: 'Main Auditorium (500 capacity)' },
+    { value: 'main_auditorium', label: 'Main Auditorium (200 capacity)' },
     { value: 'seminar_hall', label: 'Seminar Hall (120 capacity)' },
   ];
 
@@ -25,22 +25,15 @@ const EventDetailsSection = ({
     { value: 'other', label: 'Other' }
   ];
 
+  const venueCapacity = { main_auditorium: 200, seminar_hall: 120 };
+
   const calculateDuration = () => {
     if (formData?.startTime && formData?.endTime) {
       const start = new Date(`2000-01-01T${formData.startTime}:00`);
       const end = new Date(`2000-01-01T${formData.endTime}:00`);
-      
       if (end > start) {
-        const diffMs = end - start;
-        const diffHours = diffMs / (1000 * 60 * 60);
-        const hours = Math.floor(diffHours);
-        const minutes = Math.round((diffHours - hours) * 60);
-        
-        if (minutes === 0) {
-          return `${hours} Hour${hours !== 1 ? 's' : ''}`;
-        } else {
-          return `${hours}h ${minutes}m`;
-        }
+        const hours = Math.ceil((end - start) / (1000 * 60 * 60));
+        return `${hours} Hour${hours !== 1 ? 's' : ''}`;
       }
     }
     return '';
@@ -170,6 +163,8 @@ const EventDetailsSection = ({
             error={errors?.expectedAttendees}
             required
             min="1"
+            max={venueCapacity[formData?.venue] || undefined}
+            description={formData?.venue ? `Max capacity: ${venueCapacity[formData.venue]}` : ''}
           />
         </div>
 

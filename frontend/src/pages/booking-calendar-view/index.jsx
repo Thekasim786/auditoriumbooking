@@ -22,7 +22,6 @@ const BookingCalendarView = () => {
   const userIsManager = isManager();
   const userRole = userIsManager ? 'manager' : 'faculty';
 
-  // Fetch bookings from backend
   useEffect(() => {
     fetchBookings();
   }, []);
@@ -37,7 +36,6 @@ const BookingCalendarView = () => {
 
       const data = await response.json();
 
-      // Transform backend response to match calendar component format
       const transformed = data.map((booking) => ({
         id: booking.id,
         eventTitle: booking.eventTitle,
@@ -52,7 +50,6 @@ const BookingCalendarView = () => {
         expectedAttendees: booking.expectedAttendees || 0,
         status: mapStatus(booking.status),
         approvalHistory: buildApprovalHistory(booking),
-        // Keep raw data for API calls
         _raw: booking
       }));
 
@@ -64,7 +61,6 @@ const BookingCalendarView = () => {
     }
   };
 
-  // Map backend status to frontend status names
   const mapStatus = (status) => {
     switch (status?.toUpperCase()) {
       case 'APPROVED': return 'confirmed';
@@ -74,7 +70,6 @@ const BookingCalendarView = () => {
     }
   };
 
-  // Convert equipment/services maps to array of strings
   const formatFacilitiesArray = (technicalEquipment, additionalServices) => {
     const facilities = [];
 
@@ -101,7 +96,6 @@ const BookingCalendarView = () => {
     return facilities;
   };
 
-  // Build approval history timeline from booking data
   const buildApprovalHistory = (booking) => {
     const history = [];
 
@@ -188,7 +182,6 @@ const BookingCalendarView = () => {
     }
 
     if (userIsManager) {
-      // Manager rejects the booking
       try {
         const response = await authFetch('/manager/bookings/review', {
           method: 'POST',
@@ -212,7 +205,6 @@ const BookingCalendarView = () => {
         alert('Failed to cancel booking');
       }
     } else {
-      // Faculty deletes their pending booking
       try {
         const response = await authFetch(`/faculty/bookings/${booking._raw.id}`, {
           method: 'DELETE'
@@ -294,6 +286,7 @@ const BookingCalendarView = () => {
                   {viewMode === 'day' && (
                     <DayView
                       bookings={filteredBookings}
+                      currentDate={currentDate}
                       selectedBooking={selectedBooking}
                       onBookingSelect={handleBookingSelect}
                     />

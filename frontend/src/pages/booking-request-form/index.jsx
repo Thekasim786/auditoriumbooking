@@ -51,7 +51,6 @@ const BookingRequestForm = () => {
   const [errors, setErrors] = useState({});
   const [conflictingBookings, setConflictingBookings] = useState([]);
 
-  // Check availability from backend when date/time changes
   useEffect(() => {
     if (formData?.eventStartDate && formData?.startTime && formData?.endTime) {
       checkAvailability();
@@ -71,7 +70,6 @@ const BookingRequestForm = () => {
 
       const approvedBookings = await response.json();
 
-      // Check for time overlap with approved bookings
       const conflicts = approvedBookings?.filter((booking) => {
         return (
           booking.startTime < formData.endTime &&
@@ -93,7 +91,6 @@ const BookingRequestForm = () => {
         setConflictingBookings([]);
       }
     } catch (error) {
-      // Silently handle — availability check is optional
       setAvailabilityStatus(null);
       setConflictingBookings([]);
     }
@@ -177,8 +174,11 @@ const BookingRequestForm = () => {
       newErrors.endTime = 'End time must be after start time';
     }
 
+    const venueCapacity = { main_auditorium: 200, seminar_hall: 120 };
     if (!formData?.expectedAttendees || formData?.expectedAttendees <= 0) {
       newErrors.expectedAttendees = 'Enter the number of attendees';
+    } else if (formData?.venue && venueCapacity[formData.venue] && formData.expectedAttendees > venueCapacity[formData.venue]) {
+      newErrors.expectedAttendees = `Attendees cannot exceed venue capacity of ${venueCapacity[formData.venue]}`;
     }
 
     if (!formData?.eventPurpose?.trim()) {
@@ -253,7 +253,6 @@ const BookingRequestForm = () => {
         return;
       }
 
-      // Success — redirect to booking history
       navigate('/booking-history');
 
     } catch (error) {
@@ -276,7 +275,6 @@ const BookingRequestForm = () => {
 
         <FormHeader />
 
-        {/* General API error banner */}
         {errors?.general && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">

@@ -76,7 +76,6 @@ const LoginPage = () => {
         return;
       }
 
-      // Store token and user info (single role, not array)
       const storage = formData.rememberMe ? localStorage : sessionStorage;
       storage.setItem('token', data.token);
       storage.setItem('user', JSON.stringify({
@@ -86,7 +85,6 @@ const LoginPage = () => {
         role: data.role,
       }));
 
-      // Redirect based on role
       if (data.role === 'ROLE_MANAGER') {
         navigate('/manager/dashboard');
       } else {

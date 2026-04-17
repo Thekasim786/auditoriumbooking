@@ -31,7 +31,6 @@ const BookingHistory = () => {
   const user = getUser();
   const userIsManager = isManager();
 
-  // Fetch bookings from backend
   useEffect(() => {
     fetchBookings();
   }, []);
@@ -41,7 +40,6 @@ const BookingHistory = () => {
     setError(null);
 
     try {
-      // Manager sees all bookings, faculty sees only their own
       const endpoint = userIsManager
         ? '/manager/bookings'
         : '/faculty/bookings';
@@ -54,7 +52,6 @@ const BookingHistory = () => {
 
       const data = await response.json();
 
-      // Transform backend response to match component's expected format
       const transformed = data.map((booking, index) => ({
         requestId: `REQ-${new Date(booking.createdAt).getFullYear()}-${String(booking.id).padStart(3, '0')}`,
         id: booking.id,
@@ -92,7 +89,6 @@ const BookingHistory = () => {
     }
   };
 
-  // Calculate duration string from start and end time
   const calculateDuration = (startTime, endTime) => {
     if (!startTime || !endTime) return '';
     const [sh, sm] = startTime.split(':').map(Number);
@@ -104,14 +100,12 @@ const BookingHistory = () => {
     return `${hours}h ${minutes}m`;
   };
 
-  // Convert backend equipment/services maps into a flat array of names
   const formatFacilities = (technicalEquipment, additionalServices) => {
     const facilities = [];
 
     if (technicalEquipment) {
       Object.entries(technicalEquipment).forEach(([key, value]) => {
         if (value) {
-          // Convert camelCase to Title Case: "soundSystem" → "Sound System"
           const formatted = key
             .replace(/([A-Z])/g, ' $1')
             .replace(/^./, str => str.toUpperCase())
@@ -136,7 +130,6 @@ const BookingHistory = () => {
     return facilities;
   };
 
-  // Apply frontend filters
   const [filteredBookings, setFilteredBookings] = useState([]);
 
   useEffect(() => {
@@ -236,7 +229,6 @@ const BookingHistory = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Refresh button */}
               <Button
                 variant="outline"
                 size="sm"
@@ -291,7 +283,6 @@ const BookingHistory = () => {
             <AnalyticsChart bookingData={filteredBookings} />
           )}
 
-          {/* Loading state */}
           {loading && (
             <div className="bg-card rounded-xl border border-border p-12 text-center">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
@@ -305,7 +296,6 @@ const BookingHistory = () => {
             </div>
           )}
 
-          {/* Error state */}
           {!loading && error && (
             <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-12 text-center">
               <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center mx-auto mb-4">
@@ -324,7 +314,6 @@ const BookingHistory = () => {
             </div>
           )}
 
-          {/* Empty state */}
           {!loading && !error && filteredBookings?.length === 0 && (
             <div className="bg-card rounded-xl border border-border p-12 text-center">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
@@ -363,7 +352,6 @@ const BookingHistory = () => {
             </div>
           )}
 
-          {/* Bookings list */}
           {!loading && !error && filteredBookings?.length > 0 && (
             <>
               {viewMode === 'table' ? (

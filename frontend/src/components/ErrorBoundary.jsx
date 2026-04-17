@@ -14,7 +14,6 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     error.__ErrorBoundary = true;
     window.__COMPONENT_ERROR__?.(error, errorInfo);
-    // console.log("Error caught by ErrorBoundary:", error, errorInfo);
   }
 
   render() {
@@ -36,17 +35,15 @@ class ErrorBoundary extends React.Component {
             </div>
             <div className="flex justify-center items-center mt-6">
               <button
-                onClick={() => {
-                  window.location.href = "/";
-                }}
+                onClick={() => { window.location.href = "/"; }}
                 className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded flex items-center gap-2 transition-colors duration-200 shadow-sm"
               >
                 <Icon name="ArrowLeft" size={18} color="#fff" />
                 Back
               </button>
             </div>
-          </div >
-        </div >
+          </div>
+        </div>
       );
     }
 

@@ -15,13 +15,11 @@ const RequestDetails = () => {
   const userIsManager = isManager();
   const userRole = userIsManager ? 'manager' : 'faculty';
 
-  // Get booking from navigation state (passed from StatusDashboard or BookingHistory)
   const bookingFromState = location?.state?.booking || null;
 
   const [loading, setLoading] = useState(!bookingFromState);
   const [booking, setBooking] = useState(bookingFromState);
 
-  // Build request object for RequestHeader
   const request = booking ? {
     id: booking.requestId || `REQ-${booking.id}`,
     status: booking.status || 'pending',
@@ -29,7 +27,6 @@ const RequestDetails = () => {
     submittedTime: booking.reviewedAt ? new Date(booking.reviewedAt).toLocaleTimeString() : ''
   } : {};
 
-  // Build faculty object for FacultyInformation
   const faculty = booking ? {
     name: booking.facultyName || user?.fullName || 'Faculty Member',
     designation: '',
@@ -41,7 +38,6 @@ const RequestDetails = () => {
     profileImageAlt: ''
   } : {};
 
-  // Build event object (used by child components if needed)
   const event = booking ? {
     title: booking.eventTitle || '',
     date: booking.eventDate || '',
@@ -63,7 +59,6 @@ const RequestDetails = () => {
 
     const facilities = [];
 
-    // If facilities is already an array (from StatusDashboard transform)
     if (Array.isArray(booking.facilities)) {
       return booking.facilities.map((name, index) => ({
         type: name.toLowerCase().replace(/\s+/g, '-'),
@@ -72,7 +67,6 @@ const RequestDetails = () => {
       }));
     }
 
-    // If technicalEquipment is a map object (from direct API response)
     if (booking.technicalEquipment && typeof booking.technicalEquipment === 'object') {
       Object.entries(booking.technicalEquipment).forEach(([key, value]) => {
         if (value) {
@@ -100,7 +94,6 @@ const RequestDetails = () => {
     return facilities;
   };
 
-  // Build timeline
   const buildTimeline = () => {
     if (!booking) return [];
 
@@ -176,7 +169,6 @@ const RequestDetails = () => {
         return;
       }
 
-      // Update local state
       setBooking(prev => ({ ...prev, status: 'approved', remarks: notes }));
       alert('Booking approved successfully!');
     } catch (err) {
@@ -273,7 +265,6 @@ const RequestDetails = () => {
           <div className="lg:col-span-2 space-y-6 md:space-y-8">
             <FacultyInformation faculty={faculty} />
 
-            {/* Event Details Card */}
             <div className="bg-card rounded-xl border border-border shadow-elevation-1 p-4 md:p-6">
               <h3 className="text-lg font-semibold text-foreground mb-4">Event Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -328,7 +319,6 @@ const RequestDetails = () => {
 
             <FacilityRequirements facilities={buildFacilities()} />
 
-            {/* Manager Remarks */}
             {booking.remarks && (
               <div className="bg-card rounded-xl border border-border shadow-elevation-1 p-4 md:p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-3">Manager Remarks</h3>

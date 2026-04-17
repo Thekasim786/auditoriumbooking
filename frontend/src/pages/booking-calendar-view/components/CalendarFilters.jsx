@@ -11,7 +11,7 @@ const CalendarFilters = ({
 }) => {
   const auditoriumOptions = [
     { value: 'all', label: 'All Auditoriums' },
-    { value: 'main-hall', label: 'Main Auditorium (500 Seats)' },
+    { value: 'main-hall', label: 'Main Auditorium (200 Seats)' },
     { value: 'seminar-hall', label: 'Seminar Hall (120 Seats)' }
   ];
 

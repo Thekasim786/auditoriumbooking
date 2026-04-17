@@ -174,18 +174,7 @@ const BookingDetailPanel = ({ booking, onClose, onEdit, onCancel }) => {
                 Reject
               </Button>
             </>
-          )}
-          {booking?.status === 'confirmed' && (
-            <Button
-              variant="outline"
-              onClick={() => onEdit(booking)}
-              iconName="Edit"
-              iconPosition="left"
-              fullWidth
-            >
-              Edit
-            </Button>
-          )}
+          )}      
         </div>
       </div>
     </div>

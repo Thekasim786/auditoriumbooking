@@ -11,10 +11,8 @@ const ApprovalPanel = ({ requestId, currentStatus, onApprove, onReject, onReques
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const venueOptions = [
-    { value: 'main-auditorium', label: 'Main Auditorium (Capacity: 500)' },
-    { value: 'seminar-hall-a', label: 'Seminar Hall A (Capacity: 200)' },
-    { value: 'conference-room-1', label: 'Conference Room 1 (Capacity: 100)' },
-    { value: 'mini-auditorium', label: 'Mini Auditorium (Capacity: 150)' }
+    { value: 'main-auditorium', label: 'Main Auditorium (Capacity: 200)' },
+    { value: 'seminar-hall-a', label: 'Seminar Hall (Capacity: 120)' }
   ];
 
   const handleAction = (type) => {
